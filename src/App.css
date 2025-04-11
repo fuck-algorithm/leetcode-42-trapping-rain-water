@@ -1,0 +1,158 @@
+.App {
+  text-align: center;
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  width: 90%;
+  max-width: 900px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.visualization-container {
+  width: 100%;
+  background-color: #1e2128;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.rain-water-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.d3-component {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #61dafb;
+}
+
+.bar-height {
+  stroke: #282c34;
+  stroke-width: 1px;
+}
+
+.bar-water {
+  stroke: #282c34;
+  stroke-width: 1px;
+}
+
+.control-container {
+  width: 100%;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #1e2128;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.heights-input-control {
+  width: 100%;
+}
+
+.heights-input-control .input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.heights-input-control label {
+  flex: 0 0 auto;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.heights-input-control input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #3f4858;
+  background-color: #282c34;
+  color: white;
+  border-radius: 4px;
+}
+
+.heights-input-control input.error {
+  border-color: #ff5252;
+}
+
+.heights-input-control .error-message {
+  color: #ff5252;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.heights-input-control button {
+  padding: 8px 16px;
+  background-color: #61dafb;
+  color: #282c34;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.heights-input-control button:hover {
+  background-color: #4db6d6;
+}
+
+.heights-input-control .examples {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.heights-input-control .examples button {
+  background-color: #3f4858;
+  color: white;
+}
+
+.heights-input-control .examples button:hover {
+  background-color: #505b70;
+}
