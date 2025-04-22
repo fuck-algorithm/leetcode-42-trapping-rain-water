@@ -1,219 +1,254 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import useBruteForceSteps from './useBruteForceSteps';
-import VisualizerControls from '../../components/common/VisualizerControls';
+import AnimationControls from '../../components/common/AnimationControls';
+import { useElementSize } from '../../hooks/useElementSize';
 import './BruteForceVisualizer.css';
 
 interface BruteForceVisualizerProps {
   heights: number[];
   speed?: number;
+  onSpeedChange?: (speed: number) => void;
+}
+
+// 暴力法算法步骤类型
+export interface BruteForceStep {
+  phase: 'compare' | 'waterFound' | 'complete' | 'init';
+  position: number;
+  leftIndex?: number;
+  rightIndex?: number;
+  currentIndex?: number;
+  leftMax: number;
+  rightMax: number;
+  waterLevel?: Record<number, number>;
+  totalWater: number;
 }
 
 const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({ 
   heights, 
-  speed = 500 
+  speed: initialSpeed = 1000,
+  onSpeedChange = () => {}
 }) => {
-  const {
-    currentStep,
-    isPlaying,
-    progress,
-    togglePlay,
-    nextStep,
-    prevStep,
-    setProgress
-  } = useBruteForceSteps({ heights, speed });
+  const [steps, setSteps] = useState<BruteForceStep[]>([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(initialSpeed);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const d3Container = useRef<SVGSVGElement>(null);
+  const dimensions = useElementSize(containerRef);
   
-  const svgRef = useRef<SVGSVGElement>(null);
-  
-  // 设置图表尺寸和边距
-  const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-  const width = 800 - margin.left - margin.right;
-  const height = 400 - margin.top - margin.bottom;
-
+  // 当外部speed变化时同步本地state
   useEffect(() => {
-    if (!svgRef.current || !currentStep) return;
+    setSpeed(initialSpeed);
+  }, [initialSpeed]);
 
-    // 清除之前的内容
-    d3.select(svgRef.current).selectAll('*').remove();
+  const currentStep = steps[currentStepIndex] || { phase: 'complete', position: 0, leftMax: 0, rightMax: 0, totalWater: 0 };
+  const totalSteps = steps.length;
+  const progress = totalSteps > 1 ? currentStepIndex / (totalSteps - 1) : 0;
 
-    // 创建SVG
-    const svg = d3.select(svgRef.current)
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // 计算比例尺
-    const xScale = d3.scaleBand()
-      .domain(heights.map((_, i) => i.toString()))
-      .range([0, width])
-      .padding(0.1);
-
-    const yScale = d3.scaleLinear()
-      .domain([0, Math.max(...heights, d3.max(currentStep.water) || 0) + 1])
-      .range([height, 0]);
-
-    // 绘制坐标轴
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(xScale))
-      .append('text')
-      .attr('x', width / 2)
-      .attr('y', 35)
-      .attr('fill', '#000')
-      .attr('text-anchor', 'middle')
-      .text('位置索引');
-
-    svg.append('g')
-      .call(d3.axisLeft(yScale))
-      .append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('y', -40)
-      .attr('x', -height / 2)
-      .attr('fill', '#000')
-      .attr('text-anchor', 'middle')
-      .text('高度');
-
-    // 绘制高度条形图
-    svg.selectAll('.height-bar')
-      .data(heights)
-      .enter()
-      .append('rect')
-      .attr('class', 'height-bar')
-      .attr('x', (_, i) => xScale(i.toString()) || 0)
-      .attr('y', d => yScale(d))
-      .attr('width', xScale.bandwidth())
-      .attr('height', d => height - yScale(d))
-      .attr('fill', (_, i) => {
-        if (i === currentStep.currentIndex) return '#FF5722'; // 当前处理位置
-        if (i === currentStep.leftScanIndex) return '#2196F3'; // 左侧扫描位置
-        if (i === currentStep.rightScanIndex) return '#4CAF50'; // 右侧扫描位置
-        return '#9E9E9E'; // 普通位置
+  // 计算暴力法的步骤
+  useEffect(() => {
+    const calculatedSteps: BruteForceStep[] = [{
+      phase: 'init',
+      position: -1,
+      leftMax: 0,
+      rightMax: 0,
+      totalWater: 0
+    }];
+    let totalWater = 0;
+    
+    for (let i = 0; i < heights.length; i++) {
+      // 找左边最高的柱子
+      let leftMax = 0;
+      for (let j = 0; j < i; j++) {
+        leftMax = Math.max(leftMax, heights[j]);
+      }
+      
+      // 找右边最高的柱子
+      let rightMax = 0;
+      for (let j = i + 1; j < heights.length; j++) {
+        rightMax = Math.max(rightMax, heights[j]);
+      }
+      
+      // 添加比较步骤
+      calculatedSteps.push({
+        phase: 'compare',
+        position: i,
+        leftIndex: i - 1,
+        rightIndex: i + 1,
+        leftMax,
+        rightMax,
+        totalWater
       });
-
-    // 绘制水位条形图
-    if (currentStep.phase !== 'init') {
-      svg.selectAll('.water-bar')
-        .data(currentStep.water)
-        .enter()
-        .filter(d => d > 0)
-        .append('rect')
-        .attr('class', 'water-bar')
-        .attr('x', (_, i) => xScale(i.toString()) || 0)
-        .attr('y', (d, i) => yScale(heights[i] + d))
-        .attr('width', xScale.bandwidth())
-        .attr('height', d => height - yScale(d))
-        .attr('fill', '#64B5F6')
-        .attr('opacity', 0.7);
+      
+      // 当前位置能接的水
+      const waterLevel = Math.min(leftMax, rightMax) - heights[i];
+      if (waterLevel > 0) {
+        totalWater += waterLevel;
+        calculatedSteps.push({
+          phase: 'waterFound',
+          position: i,
+          currentIndex: i,
+          leftMax,
+          rightMax,
+          waterLevel: { [i]: waterLevel },
+          totalWater
+        });
+      }
     }
+    
+    calculatedSteps.push({
+      phase: 'complete',
+      position: -1,
+      leftMax: 0,
+      rightMax: 0,
+      totalWater
+    });
+    
+    setSteps(calculatedSteps);
+  }, [heights]);
+  
+  // 播放控制逻辑
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentStepIndex((prevIndex) => {
+        if (prevIndex >= steps.length - 1) {
+          setIsPlaying(false);
+          return prevIndex;
+        }
+        return prevIndex + 1;
+      });
+    }, speed);
+    
+    return () => clearInterval(interval);
+  }, [isPlaying, steps.length, speed]);
 
-    // 根据当前阶段绘制辅助线
-    if (currentStep.phase === 'scanLeft' || currentStep.phase === 'scanRight' || currentStep.phase === 'calculate') {
-      // 绘制左侧最大高度线
-      if (currentStep.leftMax > 0) {
-        svg.append('line')
-          .attr('x1', 0)
-          .attr('y1', yScale(currentStep.leftMax))
-          .attr('x2', xScale(currentStep.currentIndex.toString()) || 0)
-          .attr('y2', yScale(currentStep.leftMax))
-          .attr('stroke', '#2196F3')
-          .attr('stroke-width', 2)
-          .attr('stroke-dasharray', '5,5');
-      }
+  const togglePlay = () => setIsPlaying(!isPlaying);
+  const nextStep = () => setCurrentStepIndex(prev => Math.min(prev + 1, steps.length - 1));
+  const prevStep = () => setCurrentStepIndex(prev => Math.max(prev - 1, 0));
+  const setProgress = (progress: number) => setCurrentStepIndex(Math.round(progress * (steps.length - 1)));
+  const handleSpeedChange = (newSpeed: number) => {
+    setSpeed(newSpeed);
+    onSpeedChange(newSpeed);
+  };
 
-      // 绘制右侧最大高度线
-      if (currentStep.rightMax > 0 && currentStep.phase !== 'scanLeft') {
-        const bandWidth = xScale.bandwidth();
-        const currentX = xScale(currentStep.currentIndex.toString()) || 0;
+  // D3可视化渲染
+  useEffect(() => {
+    if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
+      // Clear any existing SVG content
+      d3.select(d3Container.current).selectAll('*').remove();
+      
+      // 设置图表尺寸和边距
+      const controlsHeight = 30; // 控制区域高度
+      const margin = { top: 8, right: 15, bottom: 20, left: 25 };
+      const width = dimensions.width - margin.left - margin.right;
+      const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
+      
+      // 创建SVG
+      const svg = d3.select(d3Container.current)
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+      
+      // 创建比例尺
+      const x = d3.scaleBand()
+        .domain(d3.range(heights.length) as unknown as string[])
+        .range([0, width])
+        .padding(0.1);
+      
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(heights) || 0])
+        .range([height, 0]);
+      
+      // 渲染柱状图
+      svg.selectAll('.bar')
+        .data(heights)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', (d, i) => x(i.toString()) || 0)
+        .attr('y', d => y(d))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d))
+        .attr('fill', (d, i) => {
+          if (currentStep.phase === 'compare' && (i === currentStep.leftIndex || i === currentStep.rightIndex)) {
+            return '#FFD700'; // 黄色表示比较中
+          } else if (currentStep.phase === 'waterFound' && (i === currentStep.currentIndex)) {
+            return '#4CAF50'; // 绿色表示找到积水
+          } else {
+            return '#3498db'; // 默认蓝色
+          }
+        });
+      
+      // 添加X轴
+      svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+      
+      // 添加Y轴
+      svg.append('g')
+        .call(d3.axisLeft(y));
+      
+      // 添加积水面积
+      if (currentStep.waterLevel && currentStep.currentIndex !== undefined) {
+        const i = currentStep.currentIndex;
+        const barHeight = heights[i];
+        const waterHeight = currentStep.waterLevel[i] || 0;
         
-        svg.append('line')
-          .attr('x1', currentX + bandWidth)
-          .attr('y1', yScale(currentStep.rightMax))
-          .attr('x2', width)
-          .attr('y2', yScale(currentStep.rightMax))
-          .attr('stroke', '#4CAF50')
-          .attr('stroke-width', 2)
-          .attr('stroke-dasharray', '5,5');
-      }
-
-      // 绘制计算水位线
-      if (currentStep.phase === 'calculate') {
-        const minHeight = Math.min(currentStep.leftMax, currentStep.rightMax);
-        if (minHeight > heights[currentStep.currentIndex]) {
-          const bandWidth = xScale.bandwidth();
-          const currentX = xScale(currentStep.currentIndex.toString()) || 0;
-          
-          svg.append('line')
-            .attr('x1', currentX)
-            .attr('y1', yScale(minHeight))
-            .attr('x2', currentX + bandWidth)
-            .attr('y2', yScale(minHeight))
-            .attr('stroke', '#FF9800')
-            .attr('stroke-width', 2);
+        if (waterHeight > 0) {
+          svg.append('rect')
+            .attr('x', x(i.toString()) || 0)
+            .attr('y', y(barHeight + waterHeight))
+            .attr('width', x.bandwidth())
+            .attr('height', height - y(waterHeight))
+            .attr('fill', 'rgba(0, 191, 255, 0.5)'); // 水的颜色
         }
       }
+      
+      // 添加说明文字
+      const phaseText: Record<string, string> = {
+        'init': '初始化',
+        'compare': '对比左右最大值',
+        'waterFound': '计算积水',
+        'complete': '完成'
+      };
+      
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 0)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '1em')
+        .attr('font-weight', 'bold')
+        .text(phaseText[currentStep.phase]);
     }
-
-    // 添加图例
-    const legend = svg.append('g')
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', 10)
-      .attr('text-anchor', 'end')
-      .selectAll('g')
-      .data([
-        { label: '当前处理位置', color: '#FF5722' },
-        { label: '左侧扫描位置', color: '#2196F3' },
-        { label: '右侧扫描位置', color: '#4CAF50' },
-        { label: '水量', color: '#64B5F6' }
-      ])
-      .enter()
-      .append('g')
-      .attr('transform', (_, i) => `translate(0,${i * 20})`);
-
-    legend.append('rect')
-      .attr('x', width - 19)
-      .attr('width', 19)
-      .attr('height', 19)
-      .attr('fill', d => d.color);
-
-    legend.append('text')
-      .attr('x', width - 24)
-      .attr('y', 9.5)
-      .attr('dy', '0.32em')
-      .text(d => d.label);
-
-    // 添加阶段描述文本
-    const phaseText = {
-      'init': '初始化',
-      'scanLeft': `扫描左侧，查找位置 ${currentStep.currentIndex} 左边的最大高度：${currentStep.leftMax}`,
-      'scanRight': `扫描右侧，查找位置 ${currentStep.currentIndex} 右边的最大高度：${currentStep.rightMax}`,
-      'calculate': `计算位置 ${currentStep.currentIndex} 的储水量：min(${currentStep.leftMax}, ${currentStep.rightMax}) - ${heights[currentStep.currentIndex]}`,
-      'complete': `计算完成，总储水量：${currentStep.totalWater}`
-    };
-
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -5)
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '14px')
-      .attr('font-weight', 'bold')
-      .text(phaseText[currentStep.phase]);
-
-  }, [currentStep, heights, width, height, margin]);
-
+  }, [currentStep, heights, dimensions.width, dimensions.height]);
+  
   return (
-    <div className="brute-force-visualizer">
-      <svg ref={svgRef}></svg>
-      <VisualizerControls
-        isPlaying={isPlaying}
-        progress={progress}
-        onTogglePlay={togglePlay}
-        onNext={nextStep}
-        onPrev={prevStep}
-        onProgressChange={setProgress}
-      />
-      <div className="stats">
-        <p>总储水量: {currentStep?.totalWater || 0}</p>
+    <div className="algorithm-visualizer" ref={containerRef}>
+      <div className="visualization-wrapper">
+        <svg
+          ref={d3Container}
+          width={dimensions.width}
+          height={dimensions.height - 30} // 留出控制面板的空间
+          className="d3-component"
+        />
+        <AnimationControls
+          isPlaying={isPlaying}
+          onPlay={togglePlay}
+          onNext={nextStep}
+          onPrev={prevStep}
+          onSeek={setProgress}
+          onSpeedChange={handleSpeedChange}
+          speed={speed}
+          progress={progress}
+          currentStep={currentStepIndex}
+          totalSteps={totalSteps}
+        />
+      </div>
+      <div className="info-panel">
+        <div>总雨水量: {currentStep.totalWater} 单位</div>
       </div>
     </div>
   );
