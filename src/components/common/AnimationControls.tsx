@@ -1,0 +1,88 @@
+import React from 'react';
+import './AnimationControls.css';
+
+interface AnimationControlsProps {
+  isPlaying: boolean;
+  progress: number;
+  currentStep: number;
+  totalSteps: number;
+  onNext: () => void;
+  onPrev: () => void;
+  onTogglePlay: () => void;
+  onProgressChange: (progress: number) => void;
+}
+
+const AnimationControls: React.FC<AnimationControlsProps> = ({
+  isPlaying,
+  progress,
+  currentStep,
+  totalSteps,
+  onNext,
+  onPrev,
+  onTogglePlay,
+  onProgressChange
+}) => {
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onProgressChange(Number(e.target.value));
+  };
+
+  return (
+    <div className="animation-controls">
+      <div className="controls-row">
+        <button 
+          className="control-button prev-button" 
+          onClick={onPrev}
+          disabled={currentStep <= 0}
+          title="上一步"
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+          </svg>
+        </button>
+        
+        <button 
+          className="control-button play-button" 
+          onClick={onTogglePlay}
+          title={isPlaying ? "暂停" : "播放"}
+        >
+          {isPlaying ? (
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="currentColor" d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+        
+        <button 
+          className="control-button next-button" 
+          onClick={onNext}
+          disabled={currentStep >= totalSteps - 1}
+          title="下一步"
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+          </svg>
+        </button>
+      </div>
+      
+      <div className="progress-container">
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={progress}
+          onChange={handleProgressChange}
+          className="progress-slider"
+        />
+        <div className="step-info">
+          步骤: {currentStep + 1} / {totalSteps}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AnimationControls; 
