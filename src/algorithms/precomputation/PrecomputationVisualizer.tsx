@@ -42,11 +42,23 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
     // 初始更新
     updateDimensions();
 
-    // 添加resize监听
+    // 添加resize监听和MutationObserver监听DOM变化
     window.addEventListener('resize', updateDimensions);
     
+    // 创建和使用MutationObserver监听容器尺寸变化
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
     // 清理
-    return () => window.removeEventListener('resize', updateDimensions);
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -54,10 +66,11 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       // Clear any existing SVG content
       d3.select(d3Container.current).selectAll('*').remove();
       
-      // Set up dimensions
-      const margin = { top: 10, right: 20, bottom: 30, left: 30 };
+      // 设置尺寸，减小边距
+      const controlsHeight = 30;
+      const margin = { top: 8, right: 15, bottom: 20, left: 25 };
       const width = dimensions.width - margin.left - margin.right;
-      const height = dimensions.height - margin.top - margin.bottom - 40; // 为控制区域预留空间
+      const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
       
       const { leftMax, rightMax, water, totalWater, currentIndex, phase } = currentStep;
       
@@ -76,37 +89,51 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
       
+      // 自适应单元宽度，根据数组长度动态计算
+      const barPadding = heights.length > 20 ? 0.05 : 0.1;
+      
       // Set up scales
       const xScale = d3.scaleBand()
         .domain(heights.map((_, i) => i.toString()))
         .range([0, width])
-        .padding(0.1);
+        .padding(barPadding);
       
       const yScale = d3.scaleLinear()
         .domain([0, maxHeight])
         .nice()
         .range([height, 0]);
       
+      // Simplified X axis with fewer ticks when too many bars
+      const xAxis = d3.axisBottom(xScale);
+      if (heights.length > 15) {
+        // 只显示部分刻度
+        xAxis.tickValues(
+          xScale.domain().filter((_, i) => i % Math.ceil(heights.length / 10) === 0)
+        );
+      }
+      
       // Add X axis
       svg.append('g')
         .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(xScale))
+        .call(xAxis)
         .append('text')
         .attr('x', width / 2)
-        .attr('y', margin.bottom - 10)
+        .attr('y', margin.bottom - 5)
         .attr('fill', 'white')
         .attr('text-anchor', 'middle')
+        .style('font-size', '0.7em')
         .text('位置');
       
       // Add Y axis
       svg.append('g')
-        .call(d3.axisLeft(yScale))
+        .call(d3.axisLeft(yScale).ticks(5))
         .append('text')
         .attr('transform', 'rotate(-90)')
-        .attr('y', -margin.left + 10)
+        .attr('y', -margin.left + 8)
         .attr('x', -height / 2)
         .attr('fill', 'white')
         .attr('text-anchor', 'middle')
+        .style('font-size', '0.7em')
         .text('高度');
       
       // Draw height bars
@@ -145,95 +172,89 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
             : 'rgba(66, 133, 244, 0.3)';
         });
       
-      // Draw left max line
-      const leftMaxLine = d3.line<number>()
-        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-        .y(d => yScale(d));
-      
-      svg.append('path')
-        .datum(leftMax)
-        .attr('fill', 'none')
-        .attr('stroke', '#ff7043')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', phase === 'leftScan' ? '5,5' : '3,3')
-        .attr('d', leftMaxLine);
-      
-      // Draw right max line
-      const rightMaxLine = d3.line<number>()
-        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-        .y(d => yScale(d));
-      
-      svg.append('path')
-        .datum(rightMax)
-        .attr('fill', 'none')
-        .attr('stroke', '#4caf50')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', phase === 'rightScan' ? '5,5' : '3,3')
-        .attr('d', rightMaxLine);
+      // Draw left max line (只在数组长度适中时绘制)
+      if (heights.length <= 30) {
+        const leftMaxLine = d3.line<number>()
+          .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
+          .y(d => yScale(d));
+        
+        svg.append('path')
+          .datum(leftMax)
+          .attr('fill', 'none')
+          .attr('stroke', '#ff7043')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', phase === 'leftScan' ? '5,5' : '3,3')
+          .attr('d', leftMaxLine);
+        
+        // Draw right max line
+        const rightMaxLine = d3.line<number>()
+          .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
+          .y(d => yScale(d));
+        
+        svg.append('path')
+          .datum(rightMax)
+          .attr('fill', 'none')
+          .attr('stroke', '#4caf50')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', phase === 'rightScan' ? '5,5' : '3,3')
+          .attr('d', rightMaxLine);
+      }
       
       // 简化图例，保持必要信息
       const legend = svg.append('g')
-        .attr('transform', `translate(${width - 100}, 10)`);
+        .attr('transform', `translate(${width - 80}, 5)`);
       
       // Height bar legend
       legend.append('rect')
-        .attr('width', 12)
-        .attr('height', 12)
+        .attr('width', 10)
+        .attr('height', 10)
         .attr('fill', '#4285f4');
       
       legend.append('text')
-        .attr('x', 16)
-        .attr('y', 10)
+        .attr('x', 14)
+        .attr('y', 8)
         .attr('fill', 'white')
-        .style('font-size', '0.7em')
+        .style('font-size', '0.65em')
         .text('高度');
       
       // Water bar legend
       legend.append('rect')
-        .attr('y', 18)
-        .attr('width', 12)
-        .attr('height', 12)
+        .attr('y', 14)
+        .attr('width', 10)
+        .attr('height', 10)
         .attr('fill', 'rgba(66, 133, 244, 0.3)');
       
       legend.append('text')
-        .attr('x', 16)
-        .attr('y', 28)
+        .attr('x', 14)
+        .attr('y', 22)
         .attr('fill', 'white')
-        .style('font-size', '0.7em')
+        .style('font-size', '0.65em')
         .text('雨水');
       
-      // Add title and water amount
+      // Add water amount
       svg.append('text')
         .attr('x', width / 2)
-        .attr('y', -5)
+        .attr('y', 0)
         .attr('text-anchor', 'middle')
         .attr('fill', 'white')
-        .style('font-size', '0.8em')
+        .style('font-size', '0.75em')
         .text(`总雨水量: ${totalWater} 单位`);
       
-      // Add phase information
+      // 简化阶段信息
       let phaseText = '';
       switch (phase) {
-        case 'leftScan':
-          phaseText = '左侧扫描: 计算每个位置左侧的最大高度';
-          break;
-        case 'rightScan':
-          phaseText = '右侧扫描: 计算每个位置右侧的最大高度';
-          break;
-        case 'waterCalculation':
-          phaseText = '计算雨水: min(leftMax, rightMax) - height';
-          break;
-        case 'complete':
-          phaseText = '计算完成: 总雨水量 = ' + totalWater;
-          break;
+        case 'leftScan': phaseText = '左侧扫描'; break;
+        case 'rightScan': phaseText = '右侧扫描'; break;
+        case 'waterCalculation': phaseText = '计算雨水'; break;
+        case 'complete': phaseText = '计算完成'; break;
       }
       
       svg.append('text')
         .attr('x', width / 2)
-        .attr('y', height + margin.bottom - 10)
+        .attr('y', height + margin.bottom - 5)
         .attr('text-anchor', 'middle')
         .attr('fill', 'white')
-        .style('font-size', '0.8em')
+        .style('font-size', '0.7em')
         .text(phaseText);
     }
   }, [heights, currentStep, dimensions]);
@@ -245,25 +266,24 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
 
   return (
     <div className="algorithm-visualizer" ref={containerRef}>
-      <div className="algorithm-description">
-        <h2>双数组法（预计算法）</h2>
-        <p>
-          该方法使用两个数组分别记录每个位置从左和从右看到的最大高度，然后计算每个位置的储水量。
-        </p>
-      </div>
-      <div className="visualization-container">
-        <svg ref={d3Container} className="d3-component" />
+      <div className="visualization-wrapper">
+        <svg
+          ref={d3Container}
+          width={dimensions.width}
+          height={dimensions.height - 30} // 留出控制面板的空间
+          className="d3-component"
+        />
         <AnimationControls
-          currentStep={currentStepIndex}
-          totalSteps={totalSteps}
           isPlaying={isPlaying}
-          progress={progress}
-          speed={speed}
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
           onSeek={setProgress}
           onSpeedChange={handleSpeedChange}
+          speed={speed}
+          progress={progress}
+          currentStep={currentStepIndex}
+          totalSteps={totalSteps}
         />
       </div>
     </div>
