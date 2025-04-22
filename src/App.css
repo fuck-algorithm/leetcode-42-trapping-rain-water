@@ -1,24 +1,19 @@
 .App {
-  text-align: center;
-  background-color: #282c34;
+  display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
+  background-color: #1e2128;
 }
 
 .App-content {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  max-width: 100vw;
-  max-height: 100vh;
-  padding: 1vh 2vw;
-  box-sizing: border-box;
+  height: calc(100% - 26px);
+  overflow: hidden;
+  padding-top: 1px;
 }
 
 .App-logo {
@@ -33,12 +28,37 @@
 }
 
 .App-header {
-  flex: 0 0 auto;
-  width: 100%;
+  padding: 2px 6px;
+  background-color: #282c34;
+  color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  height: 24px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 0.5vh 0;
+  z-index: 10;
+}
+
+.header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.App-header .description {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 400;
+  max-width: 70%;
 }
 
 .App-link {
@@ -54,17 +74,6 @@
   }
 }
 
-.visualization-container {
-  width: 100%;
-  height: 100%;
-  background-color: #1e2128;
-  border-radius: 8px;
-  padding: 0.5vh 1vw;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-}
-
 .rain-water-container {
   width: 100%;
   height: 100%;
@@ -75,9 +84,8 @@
 
 .d3-component {
   width: 100%;
-  flex: 1 1 auto;
-  height: auto;
-  max-height: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 h1 {
@@ -99,44 +107,59 @@ h1 {
 .control-panel {
   flex: 0 0 auto;
   width: 100%;
-  margin: 0.5vh 0;
-  padding: 0.5vh 1vw;
+  margin: 0;
+  padding: 2px 4px;
   background-color: #1e2128;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  gap: 0.5vh;
+  gap: 1px;
+  z-index: 5;
 }
 
 .heights-input-control {
   width: 100%;
 }
 
+.heights-input-control .input-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
 .heights-input-control .input-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 0.5vh;
+  gap: 3px;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.heights-input-control .buttons-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
 }
 
 .heights-input-control label {
   flex: 0 0 auto;
-  margin-right: 5px;
-  font-weight: bold;
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  margin-right: 3px;
+  font-weight: 500;
+  font-size: 0.7rem;
 }
 
 .heights-input-control input {
   flex: 1;
   min-width: 200px;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border: 1px solid #3f4858;
   background-color: #282c34;
   color: white;
-  border-radius: 4px;
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  border-radius: 2px;
+  font-size: 0.7rem;
 }
 
 .heights-input-control input.error {
@@ -151,15 +174,16 @@ h1 {
 }
 
 .heights-input-control button {
-  padding: 4px 10px;
+  padding: 1px 5px;
+  height: 20px;
   background-color: #61dafb;
   color: #282c34;
   border: none;
-  border-radius: 4px;
+  border-radius: 2px;
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.2s;
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  font-size: 0.7rem;
 }
 
 .heights-input-control button:hover {
@@ -167,18 +191,7 @@ h1 {
 }
 
 .heights-input-control .examples {
-  display: flex;
-  gap: 5px;
-  margin-top: 0.5vh;
-}
-
-.heights-input-control .examples button {
-  background-color: #3f4858;
-  color: white;
-}
-
-.heights-input-control .examples button:hover {
-  background-color: #505b70;
+  display: none;
 }
 
 .description {
@@ -197,10 +210,32 @@ h1 {
 }
 
 .visualization-panel {
-  flex: 1 1 auto;
+  flex: 1;
   width: 100%;
-  margin-top: 0.3vh;
   display: flex;
+  overflow: hidden;
+  position: relative;
+  height: calc(100% - 30px - 18px); /* 减去header和tab高度 */
+}
+
+.visualization-container {
+  width: 100%;
+  height: 100%;
+  background-color: #1e2128;
+  border-radius: 2px;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  position: relative;
+  padding-bottom: 30px; /* 为控制面板预留空间 */
+}
+
+.visualization-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
   overflow: hidden;
 }
 
@@ -209,6 +244,7 @@ h1 {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .algorithm-description {
@@ -240,49 +276,64 @@ h1 {
 }
 
 .tab-header {
-  flex: 0 0 auto;
-  display: flex;
-  border-bottom: 2px solid #3a3a3a;
-  margin-bottom: 0.3vh;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  border-bottom: 1px solid #3a3a3a !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  overflow: visible !important;
+  z-index: 4 !important;
 }
 
 .tab-button {
-  background: none;
-  border: none;
-  padding: 0.5vh 2vw;
-  color: #ccc;
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  font-weight: 500;
+  background: none !important;
+  border: none !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+  color: #ccc !important;
+  font-size: 0.6rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  font-weight: 500 !important;
+  line-height: 16px !important;
+  height: 16px !important;
+  max-height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .tab-button:hover {
-  color: #fff;
-  background-color: rgba(66, 133, 244, 0.1);
+  color: #fff !important;
+  background-color: rgba(66, 133, 244, 0.1) !important;
 }
 
 .tab-button.active {
-  color: #4285f4;
-  font-weight: bold;
+  color: #4285f4 !important;
+  font-weight: bold !important;
 }
 
 .tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #4285f4;
-  border-top-left-radius: 2px;
-  border-top-right-radius: 2px;
+  content: '' !important;
+  position: absolute !important;
+  bottom: -1px !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 2px !important;
+  background-color: #4285f4 !important;
+  border-top-left-radius: 1px !important;
+  border-top-right-radius: 1px !important;
 }
 
 .tab-content {
-  flex: 1 1 auto;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding-top: 1px !important;
+  position: relative !important;
 }
