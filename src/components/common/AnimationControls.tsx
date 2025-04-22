@@ -77,6 +77,9 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
       </div>
       
       <div className="progress-container">
+        <div className="step-info">
+          步骤: {currentStep + 1} / {totalSteps}
+        </div>
         <input
           type="range"
           min="0"
@@ -85,9 +88,6 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
           onChange={handleProgressChange}
           className="progress-slider"
         />
-        <div className="step-info">
-          步骤: {currentStep + 1} / {totalSteps}
-        </div>
       </div>
 
       <div className="speed-control">
