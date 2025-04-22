@@ -55,9 +55,9 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       d3.select(d3Container.current).selectAll('*').remove();
 
       // 设置尺寸
-      const margin = { top: 20, right: 30, bottom: 50, left: 40 };
+      const margin = { top: 10, right: 20, bottom: 30, left: 30 };
       const width = dimensions.width - margin.left - margin.right;
-      const height = dimensions.height - margin.top - margin.bottom - 60; // 为控制区域预留空间
+      const height = dimensions.height - margin.top - margin.bottom - 40; // 为控制区域预留空间
 
       const { stack, water, totalWater, currentIndex, popIndex, phase } = currentStep;
 
