@@ -6,10 +6,12 @@ interface AnimationControlsProps {
   progress: number;
   currentStep: number;
   totalSteps: number;
+  speed: number;
   onNext: () => void;
   onPrev: () => void;
-  onTogglePlay: () => void;
-  onProgressChange: (progress: number) => void;
+  onPlay: () => void;
+  onSeek: (progress: number) => void;
+  onSpeedChange: (speed: number) => void;
 }
 
 const AnimationControls: React.FC<AnimationControlsProps> = ({
@@ -17,13 +19,19 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
   progress,
   currentStep,
   totalSteps,
+  speed,
   onNext,
   onPrev,
-  onTogglePlay,
-  onProgressChange
+  onPlay,
+  onSeek,
+  onSpeedChange
 }) => {
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onProgressChange(Number(e.target.value));
+    onSeek(Number(e.target.value));
+  };
+
+  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onSpeedChange(Number(e.target.value));
   };
 
   return (
@@ -42,7 +50,7 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
         
         <button 
           className="control-button play-button" 
-          onClick={onTogglePlay}
+          onClick={onPlay}
           title={isPlaying ? "暂停" : "播放"}
         >
           {isPlaying ? (
@@ -80,6 +88,21 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
         <div className="step-info">
           步骤: {currentStep + 1} / {totalSteps}
         </div>
+      </div>
+
+      <div className="speed-control">
+        <label htmlFor="speed-slider">动画速度：</label>
+        <input
+          id="speed-slider"
+          type="range"
+          min="100"
+          max="1000"
+          step="100"
+          value={speed}
+          onChange={handleSpeedChange}
+          className="speed-slider"
+        />
+        <span>{speed}ms</span>
       </div>
     </div>
   );
