@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BruteForceVisualizer from './BruteForceVisualizer';
 import './BruteForce.css';
+import algorithm from './bruteForce';
 
 /**
  * 暴力解法：对于每个位置，分别向左右两边找最高的墙，
@@ -12,6 +13,18 @@ import './BruteForce.css';
 const BruteForce: React.FC = () => {
   const [heights, setHeights] = useState<number[]>([0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]);
   const [speed, setSpeed] = useState<number>(500);
+  const [totalWater, setTotalWater] = useState<number>(0);
+
+  // 计算总水量
+  useEffect(() => {
+    try {
+      const result = algorithm(heights);
+      setTotalWater(result);
+    } catch (error) {
+      console.error("计算水量时出错:", error);
+      setTotalWater(0);
+    }
+  }, [heights]);
 
   const handleHeightsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -29,33 +42,18 @@ const BruteForce: React.FC = () => {
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSpeed(parseInt(e.target.value));
+    const newSpeed = parseInt(e.target.value);
+    setSpeed(newSpeed);
   };
 
-  const calculate = (heights: number[]): number => {
-    let totalWater = 0;
-    
-    for (let i = 0; i < heights.length; i++) {
-      // 找左边最高的墙
-      let leftMax = 0;
-      for (let j = 0; j <= i - 1; j++) {
-        leftMax = Math.max(leftMax, heights[j]);
-      }
-      
-      // 找右边最高的墙
-      let rightMax = 0;
-      for (let j = i + 1; j < heights.length; j++) {
-        rightMax = Math.max(rightMax, heights[j]);
-      }
-      
-      // 计算当前位置能储存的水量
-      const minHeight = Math.min(leftMax, rightMax);
-      if (minHeight > heights[i]) {
-        totalWater += minHeight - heights[i];
-      }
-    }
-    
-    return totalWater;
+  const exampleInputs = [
+    [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1],
+    [4, 2, 0, 3, 2, 5],
+    [0, 1, 0, 2, 1, 0, 3, 1, 0, 1, 2]
+  ];
+
+  const setExample = (index: number) => {
+    setHeights(exampleInputs[index]);
   };
 
   return (
@@ -82,12 +80,19 @@ const BruteForce: React.FC = () => {
           />
         </div>
         
+        <div className="setting-examples">
+          <button onClick={() => setExample(0)}>示例1</button>
+          <button onClick={() => setExample(1)}>示例2</button>
+          <button onClick={() => setExample(2)}>示例3</button>
+        </div>
+        
         <div className="setting-item">
           <label>动画速度：</label>
           <input
             type="range"
             min="100"
             max="2000"
+            step="100"
             value={speed}
             onChange={handleSpeedChange}
           />
@@ -96,11 +101,11 @@ const BruteForce: React.FC = () => {
       </div>
 
       <div className="algorithm-result">
-        <p>总雨水量：{calculate(heights)} 单位</p>
+        <p>总雨水量：<strong>{totalWater}</strong> 单位</p>
       </div>
 
       <div className="algorithm-visualizer">
-        <BruteForceVisualizer heights={heights} speed={speed} />
+        <BruteForceVisualizer heights={heights} speed={speed} onSpeedChange={setSpeed} />
       </div>
       
       <div className="algorithm-code">

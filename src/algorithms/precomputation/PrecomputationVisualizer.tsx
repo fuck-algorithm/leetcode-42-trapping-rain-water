@@ -174,30 +174,30 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       
       // Draw left max line (只在数组长度适中时绘制)
       if (heights.length <= 30) {
-        const leftMaxLine = d3.line<number>()
-          .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-          .y(d => yScale(d));
-        
-        svg.append('path')
-          .datum(leftMax)
-          .attr('fill', 'none')
-          .attr('stroke', '#ff7043')
+      const leftMaxLine = d3.line<number>()
+        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
+        .y(d => yScale(d));
+      
+      svg.append('path')
+        .datum(leftMax)
+        .attr('fill', 'none')
+        .attr('stroke', '#ff7043')
           .attr('stroke-width', 1.5)
-          .attr('stroke-dasharray', phase === 'leftScan' ? '5,5' : '3,3')
-          .attr('d', leftMaxLine);
-        
-        // Draw right max line
-        const rightMaxLine = d3.line<number>()
-          .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-          .y(d => yScale(d));
-        
-        svg.append('path')
-          .datum(rightMax)
-          .attr('fill', 'none')
-          .attr('stroke', '#4caf50')
+        .attr('stroke-dasharray', phase === 'leftScan' ? '5,5' : '3,3')
+        .attr('d', leftMaxLine);
+      
+      // Draw right max line
+      const rightMaxLine = d3.line<number>()
+        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
+        .y(d => yScale(d));
+      
+      svg.append('path')
+        .datum(rightMax)
+        .attr('fill', 'none')
+        .attr('stroke', '#4caf50')
           .attr('stroke-width', 1.5)
-          .attr('stroke-dasharray', phase === 'rightScan' ? '5,5' : '3,3')
-          .attr('d', rightMaxLine);
+        .attr('stroke-dasharray', phase === 'rightScan' ? '5,5' : '3,3')
+        .attr('d', rightMaxLine);
       }
       
       // 简化图例，保持必要信息

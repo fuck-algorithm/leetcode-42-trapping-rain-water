@@ -5,7 +5,7 @@ import PrecomputationVisualizer from './algorithms/precomputation/Precomputation
 import MonotonicStackVisualizer from './algorithms/monotonicStack/MonotonicStackVisualizer';
 import TwoPointersVisualizer from './algorithms/twoPointers/TwoPointersVisualizer';
 import TabControl from './components/common/TabControl';
-import BruteForceVisualizer from './algorithms/bruteForce/BruteForceVisualizer';
+import BruteForceAnimation from './algorithms/bruteForce/BruteForceAnimation';
 
 // 默认高度数组
 const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
@@ -60,7 +60,7 @@ function App() {
     {
       id: "bruteForce",
       title: "暴力法",
-      content: <BruteForceVisualizer heights={heights} />
+      content: <BruteForceAnimation heights={heights} />
     }
   ];
 

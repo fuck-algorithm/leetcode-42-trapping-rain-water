@@ -9,8 +9,8 @@ interface MonotonicStackVisualizerProps {
   onSpeedChange?: (speed: number) => void;
 }
 
-const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
-  heights,
+const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({ 
+  heights, 
   speed = 500,
   onSpeedChange = () => {}
 }) => {
@@ -71,22 +71,22 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       const margin = { top: 8, right: 15, bottom: 20, left: 25 };
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
-
+      
       const { stack, water, totalWater, currentIndex, popIndex, phase } = currentStep;
-
+      
       // 找到最大高度来设置缩放
       const maxHeight = Math.max(
         ...heights,
         ...heights.map((h, i) => h + (water[i] || 0))
       );
-
+      
       // 创建SVG容器
       const svg = d3.select(d3Container.current)
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
-
+      
       // 根据数组长度调整柱子间隔
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
       
@@ -95,12 +95,12 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .domain(heights.map((_, i) => i.toString()))
         .range([0, width])
         .padding(barPadding);
-
+      
       const yScale = d3.scaleLinear()
         .domain([0, maxHeight])
         .nice()
         .range([height, 0]);
-
+      
       // 简化X轴，当数据过多时只显示部分刻度
       const xAxis = d3.axisBottom(xScale);
       if (heights.length > 15) {
@@ -120,7 +120,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('text-anchor', 'middle')
         .style('font-size', '0.7em')
         .text('位置');
-
+      
       // 添加Y轴，减少刻度数量
       svg.append('g')
         .call(d3.axisLeft(yScale).ticks(5))
@@ -132,7 +132,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('text-anchor', 'middle')
         .style('font-size', '0.7em')
         .text('高度');
-
+      
       // 绘制所有柱子
       svg.selectAll('.bar-height')
         .data(heights)
@@ -147,7 +147,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
           if (i === currentIndex) return '#ff9800'; // 当前处理的柱子
           return stack.includes(i) ? '#4caf50' : '#4285f4'; // 栈中的柱子用绿色
         });
-
+      
       // 绘制水
       svg.selectAll('.bar-water')
         .data(water)
@@ -161,7 +161,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('fill', (_, i) => {
           return i === popIndex ? 'rgba(33, 150, 243, 0.8)' : 'rgba(66, 133, 244, 0.3)';
         });
-
+      
       // 简化图例
       const legend = svg.append('g')
         .attr('transform', `translate(${width - 80}, 5)`);
@@ -171,14 +171,14 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('width', 10)
         .attr('height', 10)
         .attr('fill', '#4285f4');
-
+        
       legend.append('text')
         .attr('x', 14)
         .attr('y', 8)
         .attr('fill', 'white')
         .style('font-size', '0.65em')
         .text('柱子');
-
+        
       // 栈中柱子图例
       legend.append('rect')
         .attr('y', 14)
@@ -206,7 +206,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('fill', 'white')
         .style('font-size', '0.65em')
         .text('雨水');
-
+      
       // 添加水量
       svg.append('text')
         .attr('x', width / 2)
@@ -215,7 +215,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('fill', 'white')
         .style('font-size', '0.75em')
         .text(`总雨水量: ${totalWater} 单位`);
-
+      
       // 添加栈信息，但简化显示
       if (stack.length > 0 && stack.length <= 10) {
         // 当栈不太长时完整显示
@@ -248,7 +248,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       } else if (phase === 'complete') {
         operationText = `计算完成`;
       }
-
+      
       svg.append('text')
         .attr('x', width / 2)
         .attr('y', height + margin.bottom - 5)

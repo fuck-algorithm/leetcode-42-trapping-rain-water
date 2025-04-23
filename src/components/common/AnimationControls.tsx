@@ -36,73 +36,78 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
 
   return (
     <div className="animation-controls">
-      <div className="controls-row">
-        <button 
-          className="control-button prev-button" 
-          onClick={onPrev}
-          disabled={currentStep <= 0}
-          title="上一步"
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-          </svg>
-        </button>
-        
-        <button 
-          className="control-button play-button" 
-          onClick={onPlay}
-          title={isPlaying ? "暂停" : "播放"}
-        >
-          {isPlaying ? (
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path fill="currentColor" d="M8 5v14l11-7z" />
-            </svg>
-          )}
-        </button>
-        
-        <button 
-          className="control-button next-button" 
-          onClick={onNext}
-          disabled={currentStep >= totalSteps - 1}
-          title="下一步"
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-          </svg>
-        </button>
-      </div>
-      
-      <div className="progress-container">
+      <div className="controls-container">
         <div className="step-info">
-          步骤: {currentStep + 1} / {totalSteps}
+          {currentStep + 1} / {totalSteps}
         </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={progress}
-          onChange={handleProgressChange}
-          className="progress-slider"
-        />
-      </div>
-
-      <div className="speed-control">
-        <label htmlFor="speed-slider">动画速度：</label>
-        <input
-          id="speed-slider"
-          type="range"
-          min="100"
-          max="1000"
-          step="100"
-          value={speed}
-          onChange={handleSpeedChange}
-          className="speed-slider"
-        />
-        <span>{speed}ms</span>
+        
+        <div className="controls-buttons">
+          <button 
+            className="control-button prev-button" 
+            onClick={onPrev}
+            disabled={currentStep <= 0}
+            title="上一步"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+          </button>
+          
+          <button 
+            className="control-button play-button" 
+            onClick={onPlay}
+            title={isPlaying ? "暂停" : "播放"}
+          >
+            {isPlaying ? (
+              <svg viewBox="0 0 24 24" width="22" height="22">
+                <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="22" height="22">
+                <path fill="currentColor" d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
+          
+          <button 
+            className="control-button next-button" 
+            onClick={onNext}
+            disabled={currentStep >= totalSteps - 1}
+            title="下一步"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="progress-container">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={progress}
+            onChange={handleProgressChange}
+            className="progress-slider"
+            title={`进度: ${Math.round(progress)}%`}
+          />
+        </div>
+        
+        <div className="speed-control">
+          <span>速度</span>
+          <input
+            id="speed-slider"
+            type="range"
+            min="100"
+            max="1000"
+            step="100"
+            value={speed}
+            onChange={handleSpeedChange}
+            className="speed-slider"
+            title={`播放速度: ${Math.floor(1000/speed)}倍速`}
+          />
+          <span>{Math.floor(1000/speed)}x</span>
+        </div>
       </div>
     </div>
   );

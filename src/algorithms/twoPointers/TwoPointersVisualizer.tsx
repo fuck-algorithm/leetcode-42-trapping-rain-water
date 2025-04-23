@@ -170,25 +170,25 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       
       // 当数组不太长时才绘制辅助线
       if (heights.length <= 30) {
-        // 绘制左侧最大值线
-        svg.append('line')
-          .attr('x1', 0)
-          .attr('x2', xScale(left.toString())! + xScale.bandwidth())
-          .attr('y1', yScale(leftMax))
-          .attr('y2', yScale(leftMax))
-          .attr('stroke', '#ff7043')
+      // 绘制左侧最大值线
+      svg.append('line')
+        .attr('x1', 0)
+        .attr('x2', xScale(left.toString())! + xScale.bandwidth())
+        .attr('y1', yScale(leftMax))
+        .attr('y2', yScale(leftMax))
+        .attr('stroke', '#ff7043')
           .attr('stroke-width', 1.5)
-          .attr('stroke-dasharray', '5,5');
-        
-        // 绘制右侧最大值线
-        svg.append('line')
-          .attr('x1', xScale(right.toString())!)
-          .attr('x2', width)
-          .attr('y1', yScale(rightMax))
-          .attr('y2', yScale(rightMax))
-          .attr('stroke', '#4caf50')
+        .attr('stroke-dasharray', '5,5');
+      
+      // 绘制右侧最大值线
+      svg.append('line')
+        .attr('x1', xScale(right.toString())!)
+        .attr('x2', width)
+        .attr('y1', yScale(rightMax))
+        .attr('y2', yScale(rightMax))
+        .attr('stroke', '#4caf50')
           .attr('stroke-width', 1.5)
-          .attr('stroke-dasharray', '5,5');
+        .attr('stroke-dasharray', '5,5');
       }
       
       // 标记左指针

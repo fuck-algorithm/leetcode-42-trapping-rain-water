@@ -82,17 +82,17 @@ const HeightsInputControl: React.FC<HeightsInputControlProps> = ({
         <div className="input-group">
           <label htmlFor="heights-input">Heights (comma-separated):</label>
           <div className="input-row">
-            <input
-              id="heights-input"
-              type="text"
-              value={inputValue}
-              onChange={handleChange}
-              placeholder="e.g. 0,1,0,2,1,0,1,3,2,1,2,1"
-              className={error ? 'error' : ''}
-            />
+          <input
+            id="heights-input"
+            type="text"
+            value={inputValue}
+            onChange={handleChange}
+            placeholder="e.g. 0,1,0,2,1,0,1,3,2,1,2,1"
+            className={error ? 'error' : ''}
+          />
             <div className="buttons-group">
-              <button type="submit">Update</button>
-              <button type="button" onClick={handleReset}>Reset</button>
+          <button type="submit">Update</button>
+          <button type="button" onClick={handleReset}>Reset</button>
               <button type="button" onClick={handleExample1}>Example 1</button>
               <button type="button" onClick={handleExample2}>Example 2</button>
               <button type="button" onClick={handleRandomGenerate}>Random</button>
