@@ -61,8 +61,6 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
 
   useEffect(() => {
     if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
-      const transitionDuration = 200;
-      
       const controlsHeight = 120;
       const margin = { top: 80, right: 20, bottom: 30, left: 40 };
       const width = dimensions.width - margin.left - margin.right;

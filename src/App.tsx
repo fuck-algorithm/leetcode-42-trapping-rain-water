@@ -8,13 +8,14 @@ import TabControl from './components/common/TabControl';
 import BruteForceAnimation from './algorithms/bruteForce/BruteForceAnimation';
 import { RowByRowVisualizer } from './algorithms/rowByRow';
 import WeChatFloat from './components/common/WeChatFloat';
+import GitHubStars from './components/common/GitHubStars';
 import { GithubOutlined } from '@ant-design/icons';
 
 // 默认高度数组
 const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
 
 // GitHub 仓库地址
-const GITHUB_REPO_URL = 'https://github.com/JSREI/leetcode-42-trapping-rain-water';
+const GITHUB_REPO_URL = 'https://github.com/fuck-algorithm/leetcode-42-trapping-rain-water';
 // LeetCode 题目地址
 const LEETCODE_URL = 'https://leetcode.cn/problems/trapping-rain-water/';
 
@@ -80,9 +81,10 @@ function App() {
             target="_blank"
             rel="noopener noreferrer"
             className="github-link"
-            title="查看 GitHub 仓库"
+            title="点击去 GitHub 仓库 Star 支持一下"
           >
             <GithubOutlined />
+            <GitHubStars owner="fuck-algorithm" repo="leetcode-42-trapping-rain-water" />
           </a>
         </div>
       </div>

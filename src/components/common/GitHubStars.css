@@ -1,0 +1,25 @@
+.github-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffc107;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  background-color: rgba(255, 193, 7, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.github-stars:hover {
+  background-color: rgba(255, 193, 7, 0.2);
+}
+
+.github-stars .anticon {
+  font-size: 0.9rem;
+}
+
+.github-stars .stars-count {
+  font-weight: 500;
+  min-width: 20px;
+  text-align: center;
+}

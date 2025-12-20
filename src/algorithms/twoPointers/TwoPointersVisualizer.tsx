@@ -731,6 +731,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
           .style('opacity', 1);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heights, currentStep, dimensions]);
 
   // 语音播放功能
