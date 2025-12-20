@@ -2,6 +2,7 @@
   "name": "leetcode-42-trapping-rain-water",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
     "@testing-library/dom": "^10.4.0",

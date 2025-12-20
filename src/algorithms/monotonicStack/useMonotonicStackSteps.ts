@@ -192,6 +192,13 @@ export const useMonotonicStackSteps = ({ heights, speed = 500 }: UseMonotonicSta
     setProgress(normalizedProgress);
   }, [steps.length]);
 
+  // 重置到初始状态
+  const reset = useCallback(() => {
+    setCurrentStepIndex(0);
+    setProgress(0);
+    setIsPlaying(false);
+  }, []);
+
   return {
     currentStep: steps[currentStepIndex],
     currentStepIndex,
@@ -202,7 +209,8 @@ export const useMonotonicStackSteps = ({ heights, speed = 500 }: UseMonotonicSta
     nextStep,
     prevStep,
     goToStep,
-    setProgress: setProgressValue
+    setProgress: setProgressValue,
+    reset
   };
 };
 

@@ -17,6 +17,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
   const d3Container = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
   const {
     currentStep,
@@ -27,7 +28,8 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
     togglePlay,
     nextStep,
     prevStep,
-    setProgress
+    setProgress,
+    reset
   } = useMonotonicStackSteps({ heights, speed });
 
   // 监听容器尺寸变化
@@ -266,6 +268,49 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
 
   return (
     <div className="algorithm-visualizer" ref={containerRef}>
+      <div className="algorithm-description-compact">
+        <div className="description-header" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+          <h2>
+            单调栈法
+            <span className="toggle-icon">{isDescriptionExpanded ? '▼' : '▶'}</span>
+          </h2>
+          <p className="brief-description">
+            维护递减栈，遇到更高柱子时计算凹槽水量 | 时间O(n) 空间O(n)
+          </p>
+        </div>
+        {isDescriptionExpanded && (
+          <div className="detailed-description">
+            <p><strong>💡 核心思想：</strong></p>
+            <div style={{ fontSize: '0.75em', marginTop: '5px', marginBottom: '10px', lineHeight: '1.6' }}>
+              维护一个单调递减栈（栈底到栈顶高度递减）。
+              <br />
+              当遇到比栈顶更高的柱子时，说明形成了凹槽，可以计算积水。
+              <br />
+              类似括号匹配，每次找到一对"墙"就计算中间的水量。
+            </div>
+            
+            <p><strong>算法步骤：</strong></p>
+            <ol style={{ fontSize: '0.75em', marginTop: '3px', paddingLeft: '20px', lineHeight: '1.5' }}>
+              <li><strong>遍历数组：</strong>从左到右处理每个柱子</li>
+              <li><strong>栈顶比较：</strong>
+                <ul style={{ paddingLeft: '20px', marginTop: '2px' }}>
+                  <li>当前高度 ≤ 栈顶 → 入栈</li>
+                  <li>当前高度 &gt; 栈顶 → 出栈并计算水量</li>
+                </ul>
+              </li>
+              <li><strong>计算水量：</strong>宽度 × min(左墙, 右墙) - 底部高度</li>
+            </ol>
+            
+            <p style={{ fontSize: '0.7em', marginTop: '8px', color: '#FFC107' }}>
+              <strong>⏱ 时间复杂度：</strong>O(n) - 每个元素最多入栈出栈各一次
+              <br />
+              <strong>💾 空间复杂度：</strong>O(n) - 栈的空间
+              <br />
+              <strong>💡 特点：</strong>按"层"计算水量，横向累加
+            </p>
+          </div>
+        )}
+      </div>
       <div className="visualization-wrapper">
         <svg
           ref={d3Container}
@@ -276,6 +321,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
+          onReset={reset}
           onSeek={setProgress}
           onSpeedChange={handleSpeedChange}
           speed={speed}

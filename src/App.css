@@ -58,6 +58,32 @@
   white-space: nowrap;
 }
 
+.App-header h1 .title-link {
+  color: #61dafb;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.App-header h1 .title-link:hover {
+  color: #21a1cb;
+  text-decoration: underline;
+}
+
+.github-link {
+  margin-left: auto;
+  color: white;
+  font-size: 1.4rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.github-link:hover {
+  color: #61dafb;
+  transform: scale(1.1);
+}
+
 .App-header .description {
   margin: 0;
   font-size: 0.7rem;

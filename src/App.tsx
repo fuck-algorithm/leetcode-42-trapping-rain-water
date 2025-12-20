@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './App.css';
 import HeightsInputControl from './components/HeightsInputControl';
 import PrecomputationVisualizer from './algorithms/precomputation/PrecomputationVisualizer';
@@ -7,34 +7,22 @@ import TwoPointersVisualizer from './algorithms/twoPointers/TwoPointersVisualize
 import TabControl from './components/common/TabControl';
 import BruteForceAnimation from './algorithms/bruteForce/BruteForceAnimation';
 import { RowByRowVisualizer } from './algorithms/rowByRow';
+import WeChatFloat from './components/common/WeChatFloat';
+import { GithubOutlined } from '@ant-design/icons';
 
 // 默认高度数组
 const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
+
+// GitHub 仓库地址
+const GITHUB_REPO_URL = 'https://github.com/JSREI/leetcode-42-trapping-rain-water';
+// LeetCode 题目地址
+const LEETCODE_URL = 'https://leetcode.cn/problems/trapping-rain-water/';
 
 function App() {
   // 状态
   const [heights, setHeights] = useState<number[]>(defaultHeights);
   const [activeTab, setActiveTab] = useState<string>("twoPointers");
   const [speed, setSpeed] = useState<number>(500);
-  
-  // 视口尺寸状态
-  const [viewportSize, setViewportSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight
-  });
-
-  // 处理窗口大小变化
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportSize({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // 处理速度变化
   const handleSpeedChange = (newSpeed: number) => {
@@ -70,22 +58,32 @@ function App() {
     }
   ];
 
-  const loadExample = () => {
-    // Implementation of loadExample function
-  };
-
-  const generateRandom = () => {
-    // Implementation of generateRandom function
-  };
-
   return (
     <div className="App">
       <div className="App-header">
         <div className="header-flex">
-          <h1>接雨水问题可视化</h1>
+          <h1>
+            <a 
+              href={LEETCODE_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="title-link"
+            >
+              42. 接雨水
+            </a>
+          </h1>
           <p className="description">
             给定一个非负整数数组表示高度图，计算下雨后能够接住的雨水量。
           </p>
+          <a 
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="github-link"
+            title="查看 GitHub 仓库"
+          >
+            <GithubOutlined />
+          </a>
         </div>
       </div>
       
@@ -105,6 +103,8 @@ function App() {
           />
         </div>
       </div>
+      
+      <WeChatFloat />
     </div>
   );
 }

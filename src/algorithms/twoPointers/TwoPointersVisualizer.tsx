@@ -30,7 +30,8 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
     togglePlay,
     nextStep,
     prevStep,
-    setProgress
+    setProgress,
+    reset
   } = useTwoPointersSteps({ heights, speed });
 
   // 监听容器尺寸变化
@@ -853,6 +854,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
+          onReset={reset}
           onSeek={setProgress}
           onSpeedChange={handleSpeedChange}
           speed={speed}

@@ -276,6 +276,13 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
     setProgress(normalizedProgress);
   }, [steps.length]);
 
+  // 重置到初始状态
+  const reset = useCallback(() => {
+    setCurrentStepIndex(0);
+    setProgress(0);
+    setIsPlaying(false);
+  }, []);
+
   return {
     currentStep: steps[currentStepIndex],
     currentStepIndex,
@@ -286,7 +293,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
     nextStep,
     prevStep,
     goToStep,
-    setProgress: setProgressValue
+    setProgress: setProgressValue,
+    reset
   };
 };
 

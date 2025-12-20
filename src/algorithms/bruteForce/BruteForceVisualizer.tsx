@@ -1,187 +1,401 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import AnimationControls from '../../components/common/AnimationControls';
-import { useElementSize } from '../../hooks/useElementSize';
-import { BruteForceVisualizerProps, BruteForceStep } from './types';
-import { calculateBruteForceSteps } from './bruteForceSteps';
-import { createD3Scales, setupSvgElements, drawBars, addAxes } from './d3Utils';
-import { renderScanIndicators, renderMaxHeightIndicators, renderCompareAndWaterCalculation } from './visualizerRender';
-import { renderWater } from './waterRenderer';
+import { BruteForceVisualizerProps } from './types';
+import useBruteForceSteps from './useBruteForceSteps';
 import './BruteForceVisualizer.css';
 
 /**
  * 暴力法可视化组件
- * 用于可视化展示暴力法解决接雨水问题的过程
+ * 用于可视化展示暴力法（按列求）解决接雨水问题的过程
  */
 const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({ 
   heights, 
-  speed: initialSpeed = 1000,
+  speed = 500,
   onSpeedChange = () => {}
 }) => {
-  const [steps, setSteps] = useState<BruteForceStep[]>([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(initialSpeed);
-  const [allWaterHeights, setAllWaterHeights] = useState<Record<number, number>>({});
-  
-  // 引用和尺寸相关
   const containerRef = useRef<HTMLDivElement>(null);
   const d3Container = useRef<SVGSVGElement>(null);
-  const dimensions = useElementSize(containerRef);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
-  // 当外部speed变化时同步本地state
+  const {
+    currentStep,
+    currentStepIndex,
+    totalSteps,
+    isPlaying,
+    progress,
+    togglePlay,
+    nextStep,
+    prevStep,
+    setProgress,
+    reset
+  } = useBruteForceSteps({ heights, speed });
+
+  // 监听容器尺寸变化
   useEffect(() => {
-    setSpeed(initialSpeed);
-  }, [initialSpeed]);
-
-  // 当前步骤和进度
-  const currentStep = steps[currentStepIndex] || { 
-    phase: 'init', 
-    position: -1, 
-    leftMax: 0, 
-    rightMax: 0, 
-    totalWater: 0,
-    description: '初始化算法'
-  };
-  const totalSteps = steps.length;
-  const progress = totalSteps > 1 ? currentStepIndex / (totalSteps - 1) * 100 : 0;
-
-  // 计算暴力法的步骤 - 只在heights变化时重新计算
-  useEffect(() => {
-    if (!heights || heights.length === 0) return;
-    
-    try {
-      console.log("计算步骤，高度数组:", heights);
-      const calculatedSteps = calculateBruteForceSteps(heights);
-      console.log("计算的步骤数:", calculatedSteps.length);
-      setSteps(calculatedSteps);
-      setCurrentStepIndex(0);
-
-      // 获取最终的积水高度
-      const lastStep = calculatedSteps[calculatedSteps.length - 1];
-      if (lastStep && lastStep.waterLevel) {
-        setAllWaterHeights(lastStep.waterLevel);
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        setDimensions({ width, height });
       }
-    } catch (error) {
-      console.error("计算步骤时出错:", error);
-    }
-  }, [heights]);
-  
-  // 播放控制 - 处理自动播放逻辑
-  useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
     
-    if (isPlaying && currentStepIndex < steps.length - 1) {
-      timer = setTimeout(() => {
-        setCurrentStepIndex(prev => prev + 1);
-      }, speed);
-    } else if (isPlaying && currentStepIndex >= steps.length - 1) {
-      setIsPlaying(false);
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
     
     return () => {
-      if (timer) clearTimeout(timer);
+      window.removeEventListener('resize', updateDimensions);
+      resizeObserver.disconnect();
     };
-  }, [isPlaying, currentStepIndex, steps.length, speed]);
-  
-  // D3可视化渲染 - 确保DOM元素存在且有尺寸
+  }, []);
+
+
+  // D3可视化渲染
   useEffect(() => {
-    if (!d3Container.current || !dimensions.width || !dimensions.height || heights.length === 0) {
-      console.log("跳过渲染，条件不满足:", {
-        hasContainer: !!d3Container.current,
-        width: dimensions.width,
-        height: dimensions.height,
-        heightsLength: heights.length
-      });
+    if (!d3Container.current || !currentStep || dimensions.width <= 0 || dimensions.height <= 0) {
       return;
     }
 
-    try {
-      console.log("渲染步骤:", currentStepIndex, "阶段:", currentStep.phase);
-      const svg = d3.select(d3Container.current);
-      // 减小顶部和底部的边距，确保有足够空间显示完整内容
-      const margin = { top: 20, right: 30, bottom: 50, left: 40 };
-      const width = dimensions.width - margin.left - margin.right;
-      const height = dimensions.height - margin.top - margin.bottom;
+    const controlsHeight = 120;
+    const margin = { top: 80, right: 20, bottom: 30, left: 40 };
+    const width = dimensions.width - margin.left - margin.right;
+    const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
 
-      // 创建比例尺
-      const { x, y } = createD3Scales(heights, width, height, margin.left, margin.right);
-      
-      // 设置SVG基础元素
-      const svgContentGroup = setupSvgElements(svg, width, height, margin);
+    const { position, leftMax, rightMax, waterLevel, totalWater, phase, scanIndex } = currentStep;
+    const maxHeight = Math.max(...heights, 1);
 
-      // 绘制柱状图
-      drawBars(svgContentGroup, heights, x, y, currentStep.position);
-      
-      // 渲染扫描指示器
-      renderScanIndicators(svgContentGroup, currentStep, x, y, heights);
-      
-      // 渲染左右最大高度指示器
-      renderMaxHeightIndicators(svgContentGroup, currentStep, x, y, width);
-      
-      // 渲染比较和水量计算指示器
-      renderCompareAndWaterCalculation(svgContentGroup, currentStep, x, y, heights, width);
-      
-      // 渲染水的积累效果
-      renderWater(svgContentGroup, currentStep, x, y, heights);
-      
-      // 添加坐标轴
-      addAxes(svgContentGroup, x, y, width, height, margin);
-    } catch (error) {
-      console.error("渲染时出错:", error);
+
+    const svgElement = d3.select(d3Container.current);
+    svgElement.selectAll('*').remove();
+
+    const svg = svgElement
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // 定义渐变
+    const defs = svg.append('defs');
+    
+    // 水的渐变
+    const waterGradient = defs.append('linearGradient')
+      .attr('id', 'bruteWaterGradient')
+      .attr('x1', '0%')
+      .attr('y1', '0%')
+      .attr('x2', '0%')
+      .attr('y2', '100%');
+    
+    waterGradient.append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', '#64B5F6')
+      .attr('stop-opacity', 0.7);
+    
+    waterGradient.append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', '#1E88E5')
+      .attr('stop-opacity', 0.85);
+
+    const barPadding = heights.length > 20 ? 0.05 : 0.1;
+
+    const xScale = d3.scaleBand()
+      .domain(heights.map((_, i) => i.toString()))
+      .range([0, width])
+      .padding(barPadding);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, maxHeight])
+      .nice()
+      .range([height, 0]);
+
+    // Y轴
+    svg.append('g')
+      .call(d3.axisLeft(yScale).ticks(5))
+      .append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('y', -margin.left + 8)
+      .attr('x', -height / 2)
+      .attr('fill', 'white')
+      .attr('text-anchor', 'middle')
+      .style('font-size', '0.7em')
+      .text('高度');
+
+    // 绘制柱子
+    svg.selectAll('.bar-height')
+      .data(heights)
+      .enter()
+      .append('rect')
+      .attr('class', 'bar-height')
+      .attr('x', (_, i) => xScale(i.toString())!)
+      .attr('y', d => yScale(d))
+      .attr('width', xScale.bandwidth())
+      .attr('height', d => height - yScale(d))
+      .attr('fill', (_, i) => {
+        if (i === position) return '#ff7043'; // 当前处理的位置
+        if (scanIndex !== undefined && i === scanIndex) return '#FFC107'; // 扫描位置
+        return '#4285f4';
+      })
+      .attr('stroke', (_, i) => {
+        if (i === position || (scanIndex !== undefined && i === scanIndex)) return '#fff';
+        return 'none';
+      })
+      .attr('stroke-width', (_, i) => {
+        if (i === position || (scanIndex !== undefined && i === scanIndex)) return 2;
+        return 0;
+      });
+
+    // 绘制已计算的水
+    if (waterLevel) {
+      Object.entries(waterLevel).forEach(([idx, level]) => {
+        const i = parseInt(idx);
+        if (level > 0) {
+          svg.append('rect')
+            .attr('class', 'bar-water')
+            .attr('x', xScale(i.toString())!)
+            .attr('y', yScale(heights[i] + level))
+            .attr('width', xScale.bandwidth())
+            .attr('height', height - yScale(level))
+            .attr('fill', 'url(#bruteWaterGradient)');
+        }
+      });
     }
-  }, [dimensions, heights, currentStep]);
-  
-  // 控制函数
-  const togglePlay = () => setIsPlaying(!isPlaying);
-  const nextStep = () => setCurrentStepIndex(prev => Math.min(prev + 1, steps.length - 1));
-  const prevStep = () => setCurrentStepIndex(prev => Math.max(prev - 1, 0));
-  const setProgress = (progress: number) => setCurrentStepIndex(Math.round((progress / 100) * (steps.length - 1)));
+
+
+    // 绘制左侧最大高度线
+    if (leftMax > 0 && position >= 0 && (phase === 'scanLeftComplete' || 
+        phase === 'scanRightComplete' || phase === 'compare' || phase === 'waterFound')) {
+      const leftLineX = xScale(position.toString())!;
+      svg.append('line')
+        .attr('x1', 0)
+        .attr('x2', leftLineX)
+        .attr('y1', yScale(leftMax))
+        .attr('y2', yScale(leftMax))
+        .attr('stroke', '#ff7043')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '5,5');
+      
+      svg.append('text')
+        .attr('x', 5)
+        .attr('y', yScale(leftMax) - 5)
+        .attr('fill', '#ff7043')
+        .attr('font-weight', 'bold')
+        .style('font-size', '0.75em')
+        .text(`leftMax: ${leftMax}`);
+    }
+
+    // 绘制右侧最大高度线
+    if (rightMax > 0 && position >= 0 && (phase === 'scanRightComplete' || phase === 'compare' || 
+        phase === 'waterFound')) {
+      const rightLineX = xScale(position.toString())! + xScale.bandwidth();
+      svg.append('line')
+        .attr('x1', rightLineX)
+        .attr('x2', width)
+        .attr('y1', yScale(rightMax))
+        .attr('y2', yScale(rightMax))
+        .attr('stroke', '#4caf50')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '5,5');
+      
+      svg.append('text')
+        .attr('x', width - 5)
+        .attr('y', yScale(rightMax) - 5)
+        .attr('text-anchor', 'end')
+        .attr('fill', '#4caf50')
+        .attr('font-weight', 'bold')
+        .style('font-size', '0.75em')
+        .text(`rightMax: ${rightMax}`);
+    }
+
+    // 绘制水位线（比较阶段）
+    if (phase === 'compare' || phase === 'waterFound') {
+      const minHeight = Math.min(leftMax, rightMax);
+      if (minHeight > 0 && position >= 0) {
+        const barX = xScale(position.toString())!;
+        svg.append('line')
+          .attr('x1', barX)
+          .attr('x2', barX + xScale.bandwidth())
+          .attr('y1', yScale(minHeight))
+          .attr('y2', yScale(minHeight))
+          .attr('stroke', '#FFC107')
+          .attr('stroke-width', 3);
+      }
+    }
+
+    // 索引标签
+    if (heights.length <= 30) {
+      heights.forEach((_, i) => {
+        const barX = xScale(i.toString())!;
+        const barWidth = xScale.bandwidth();
+        const isActive = i === position;
+        const isScan = scanIndex !== undefined && i === scanIndex;
+
+        svg.append('circle')
+          .attr('cx', barX + barWidth / 2)
+          .attr('cy', height + 20)
+          .attr('r', 10)
+          .attr('fill', isActive ? '#ff7043' : isScan ? '#FFC107' : 'rgba(255, 255, 255, 0.3)')
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 1);
+
+        svg.append('text')
+          .attr('x', barX + barWidth / 2)
+          .attr('y', height + 24)
+          .attr('text-anchor', 'middle')
+          .attr('fill', isActive || isScan ? 'white' : '#000')
+          .attr('font-weight', 'bold')
+          .style('font-size', '0.7em')
+          .text(i);
+      });
+    }
+
+
+    // 图例
+    const legend = svg.append('g')
+      .attr('transform', `translate(${width - 100}, 10)`);
+
+    const legendItems = [
+      { color: '#4285f4', label: '柱子', y: 0 },
+      { color: '#ff7043', label: '当前位置', y: 14 },
+      { color: '#FFC107', label: '扫描位置', y: 28 },
+      { color: '#1E88E5', label: '雨水', y: 42 }
+    ];
+
+    legendItems.forEach(item => {
+      legend.append('rect')
+        .attr('y', item.y)
+        .attr('width', 12)
+        .attr('height', 12)
+        .attr('fill', item.color);
+
+      legend.append('text')
+        .attr('x', 16)
+        .attr('y', item.y + 9)
+        .attr('fill', 'white')
+        .style('font-size', '0.65em')
+        .text(item.label);
+    });
+
+    // 顶部状态面板
+    const statePanel = svg.append('g')
+      .attr('class', 'state-panel')
+      .attr('transform', `translate(0, -65)`);
+
+    statePanel.append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', width)
+      .attr('height', 55)
+      .attr('fill', 'rgba(30, 33, 40, 0.9)')
+      .attr('stroke', '#ff7043')
+      .attr('stroke-width', 2)
+      .attr('rx', 5);
+
+    statePanel.append('text')
+      .attr('x', width / 2)
+      .attr('y', 18)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#FFC107')
+      .attr('font-weight', 'bold')
+      .style('font-size', '1em')
+      .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
+
+    const varSpacing = Math.min(120, width / 5);
+    const variables = [
+      { label: '当前位置', value: position >= 0 ? position : '-', color: '#ff7043', x: varSpacing * 0.5 },
+      { label: '左侧最大', value: leftMax, color: '#ff7043', x: varSpacing * 1.5 },
+      { label: '右侧最大', value: rightMax, color: '#4caf50', x: varSpacing * 2.5 },
+      { label: '总水量', value: totalWater, color: '#64b5f6', x: width - varSpacing * 0.8 }
+    ];
+
+    variables.forEach(v => {
+      const varGroup = statePanel.append('g')
+        .attr('transform', `translate(${v.x}, 35)`);
+
+      varGroup.append('text')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('fill', '#aaa')
+        .style('font-size', '0.7em')
+        .text(`${v.label}:`);
+
+      varGroup.append('text')
+        .attr('x', 0)
+        .attr('y', 12)
+        .attr('fill', v.color)
+        .attr('font-weight', 'bold')
+        .style('font-size', '1em')
+        .text(v.value);
+    });
+
+  }, [heights, currentStep, dimensions, currentStepIndex, totalSteps]);
+
   const handleSpeedChange = (newSpeed: number) => {
-    setSpeed(newSpeed);
     onSpeedChange(newSpeed);
   };
-  
-  // 如果没有高度数组，显示提示
-  if (!heights || heights.length === 0) {
-    return <div className="brute-force-visualizer">请提供高度数组以开始可视化</div>;
-  }
+
 
   return (
-    <div className="brute-force-visualizer" ref={containerRef} style={{ position: 'relative', paddingBottom: '60px' }}>
-      <div className="algorithm-header" style={{ margin: '2px 0', padding: '4px' }}>
-        <h2 className="main-title" style={{ fontSize: '16px', margin: '2px 0' }}>暴力法解决接雨水问题</h2>
-        <div className="phase-wrapper" style={{ fontSize: '12px' }}>
-          <div className="phase-title" style={{ fontSize: '12px', margin: '1px 0' }}>当前步骤: {currentStepIndex + 1}/{totalSteps}</div>
-          <div className="phase-description" style={{ fontSize: '11px', margin: '1px 0' }}>{currentStep.description}</div>
-          <div className="phase-sub-description" style={{ fontSize: '10px', margin: '0' }}>{currentStep.subStepDescription}</div>
+    <div className="algorithm-visualizer brute-force-visualizer" ref={containerRef}>
+      <div className="algorithm-description-compact">
+        <div className="description-header" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+          <h2>
+            暴力法（按列求）
+            <span className="toggle-icon">{isDescriptionExpanded ? '▼' : '▶'}</span>
+          </h2>
+          <p className="brief-description">
+            对每个位置分别计算左右最大高度 | 时间O(n²) 空间O(1)
+          </p>
         </div>
+        {isDescriptionExpanded && (
+          <div className="detailed-description">
+            <p><strong>💡 核心思想：</strong></p>
+            <div style={{ fontSize: '0.75em', marginTop: '5px', marginBottom: '10px', lineHeight: '1.6' }}>
+              对于每个位置，能接的雨水量 = min(左侧最大高度, 右侧最大高度) - 当前高度
+              <br />
+              这是最直观的解法，但需要对每个位置都重新扫描左右两侧。
+            </div>
+            
+            <p><strong>算法步骤：</strong></p>
+            <ol style={{ fontSize: '0.75em', marginTop: '3px', paddingLeft: '20px', lineHeight: '1.5' }}>
+              <li><strong>遍历每个位置：</strong>从左到右处理每个柱子</li>
+              <li><strong>左侧扫描：</strong>找出当前位置左侧的最大高度</li>
+              <li><strong>右侧扫描：</strong>找出当前位置右侧的最大高度</li>
+              <li><strong>计算水量：</strong>min(leftMax, rightMax) - height[i]</li>
+            </ol>
+            
+            <p style={{ fontSize: '0.7em', marginTop: '8px', color: '#FFC107' }}>
+              <strong>⏱ 时间复杂度：</strong>O(n²) - 每个位置都要扫描左右
+              <br />
+              <strong>💾 空间复杂度：</strong>O(1) - 只用了几个变量
+              <br />
+              <strong>⚠️ 注意：</strong>效率较低，可用动态规划优化
+            </p>
+          </div>
+        )}
       </div>
-      
-      <div className="visualization-wrapper" style={{ height: '500px', marginBottom: '2px' }}>
-        <svg 
-          ref={d3Container} 
+      <div className="visualization-wrapper">
+        <svg
+          ref={d3Container}
           className="d3-component"
-          width="100%"
-          height="100%"
-          preserveAspectRatio="xMidYMid meet"
-        ></svg>
-      </div>
-      
-      <div className="info-panel" style={{ marginBottom: '60px', padding: '4px', fontSize: '12px' }}>
-        <div className="stats">总雨水量: <span className="total-water">{currentStep.totalWater}</span> 单位</div>
-      </div>
-      
-      <div className="playback-controls-fixed">
-        <AnimationControls 
+        />
+        <AnimationControls
           isPlaying={isPlaying}
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
-          progress={progress}
+          onReset={reset}
           onSeek={setProgress}
-          speed={speed}
           onSpeedChange={handleSpeedChange}
+          speed={speed}
+          progress={progress}
           currentStep={currentStepIndex}
           totalSteps={totalSteps}
         />
@@ -190,4 +404,4 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
   );
 };
 
-export default BruteForceVisualizer; 
+export default BruteForceVisualizer;

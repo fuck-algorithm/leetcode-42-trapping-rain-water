@@ -17,6 +17,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
   const d3Container = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
   const {
     currentStep,
@@ -27,7 +28,8 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
     togglePlay,
     nextStep,
     prevStep,
-    setProgress
+    setProgress,
+    reset
   } = usePrecomputationSteps({ heights, speed });
 
   // 监听容器尺寸变化
@@ -266,6 +268,44 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
 
   return (
     <div className="algorithm-visualizer" ref={containerRef}>
+      <div className="algorithm-description-compact">
+        <div className="description-header" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+          <h2>
+            双数组法（动态规划）
+            <span className="toggle-icon">{isDescriptionExpanded ? '▼' : '▶'}</span>
+          </h2>
+          <p className="brief-description">
+            预计算左右最大高度数组 | 时间O(n) 空间O(n)
+          </p>
+        </div>
+        {isDescriptionExpanded && (
+          <div className="detailed-description">
+            <p><strong>💡 核心思想：</strong></p>
+            <div style={{ fontSize: '0.75em', marginTop: '5px', marginBottom: '10px', lineHeight: '1.6' }}>
+              暴力法对每个位置都重新扫描左右，效率低。
+              <br />
+              我们可以预先计算好每个位置的左侧最大值和右侧最大值，存入两个数组。
+              <br />
+              这样计算水量时直接查表即可，避免重复扫描。
+            </div>
+            
+            <p><strong>算法步骤：</strong></p>
+            <ol style={{ fontSize: '0.75em', marginTop: '3px', paddingLeft: '20px', lineHeight: '1.5' }}>
+              <li><strong>左侧扫描：</strong>从左到右，leftMax[i] = max(leftMax[i-1], height[i])</li>
+              <li><strong>右侧扫描：</strong>从右到左，rightMax[i] = max(rightMax[i+1], height[i])</li>
+              <li><strong>计算水量：</strong>water[i] = min(leftMax[i], rightMax[i]) - height[i]</li>
+            </ol>
+            
+            <p style={{ fontSize: '0.7em', marginTop: '8px', color: '#FFC107' }}>
+              <strong>⏱ 时间复杂度：</strong>O(n) - 三次线性扫描
+              <br />
+              <strong>💾 空间复杂度：</strong>O(n) - 两个辅助数组
+              <br />
+              <strong>💡 优化：</strong>可用双指针进一步优化空间到O(1)
+            </p>
+          </div>
+        )}
+      </div>
       <div className="visualization-wrapper">
         <svg
           ref={d3Container}
@@ -276,6 +316,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
+          onReset={reset}
           onSeek={setProgress}
           onSpeedChange={handleSpeedChange}
           speed={speed}

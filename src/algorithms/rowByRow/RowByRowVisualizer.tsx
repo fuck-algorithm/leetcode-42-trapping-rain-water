@@ -29,7 +29,8 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
     togglePlay,
     nextStep,
     prevStep,
-    setProgress
+    setProgress,
+    reset
   } = useRowByRowSteps({ heights, speed });
 
   // 监听容器尺寸变化
@@ -373,6 +374,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           onPlay={togglePlay}
           onNext={nextStep}
           onPrev={prevStep}
+          onReset={reset}
           onSeek={setProgress}
           onSpeedChange={handleSpeedChange}
           speed={speed}

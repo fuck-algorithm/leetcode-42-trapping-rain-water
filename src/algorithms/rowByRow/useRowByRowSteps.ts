@@ -217,6 +217,13 @@ export const useRowByRowSteps = ({ heights, speed = 500 }: UseRowByRowStepsProps
     setProgress(normalizedProgress);
   }, [steps.length]);
 
+  // 重置到初始状态
+  const reset = useCallback(() => {
+    setCurrentStepIndex(0);
+    setProgress(0);
+    setIsPlaying(false);
+  }, []);
+
   return {
     currentStep: steps[currentStepIndex],
     currentStepIndex,
@@ -227,7 +234,8 @@ export const useRowByRowSteps = ({ heights, speed = 500 }: UseRowByRowStepsProps
     nextStep,
     prevStep,
     goToStep,
-    setProgress: setProgressValue
+    setProgress: setProgressValue,
+    reset
   };
 };
 
