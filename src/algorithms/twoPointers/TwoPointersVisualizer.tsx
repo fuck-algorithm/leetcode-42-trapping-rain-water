@@ -489,13 +489,13 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .attr('class', 'state-panel')
         .attr('transform', `translate(0, -65)`);
       
-      // 背景框
+      // 背景框 - 使用浅色背景
       statePanel.append('rect')
         .attr('x', 0)
         .attr('y', 0)
         .attr('width', width)
         .attr('height', 55)
-        .attr('fill', 'rgba(30, 33, 40, 0.9)')
+        .attr('fill', 'rgba(255, 255, 255, 0.95)')
         .attr('stroke', '#4285f4')
         .attr('stroke-width', 2)
         .attr('rx', 5);
@@ -505,7 +505,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .attr('x', width / 2)
         .attr('y', 18)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#FFC107')
+        .attr('fill', '#1565C0')
         .attr('font-weight', 'bold')
         .style('font-size', '1em')
         .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
@@ -516,7 +516,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         { label: 'right', value: right, color: '#4caf50', x: 150 },
         { label: 'leftMax', value: leftMax, color: '#ff7043', x: 260 },
         { label: 'rightMax', value: rightMax, color: '#4caf50', x: 390 },
-        { label: 'totalWater', value: totalWater, color: '#64b5f6', x: width - 120 }
+        { label: 'totalWater', value: totalWater, color: '#1976D2', x: width - 120 }
       ];
       
       variables.forEach(v => {
@@ -527,7 +527,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         varGroup.append('text')
           .attr('x', 0)
           .attr('y', 0)
-          .attr('fill', '#aaa')
+          .attr('fill', '#666')
           .style('font-size', '0.75em')
           .text(`${v.label}:`);
         

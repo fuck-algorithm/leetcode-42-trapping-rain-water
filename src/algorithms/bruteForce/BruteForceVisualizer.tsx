@@ -304,7 +304,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .attr('y', 0)
       .attr('width', width)
       .attr('height', 55)
-      .attr('fill', 'rgba(30, 33, 40, 0.9)')
+      .attr('fill', 'rgba(255, 255, 255, 0.95)')
       .attr('stroke', '#ff7043')
       .attr('stroke-width', 2)
       .attr('rx', 5);
@@ -313,7 +313,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .attr('x', width / 2)
       .attr('y', 18)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#FFC107')
+      .attr('fill', '#E65100')
       .attr('font-weight', 'bold')
       .style('font-size', '1em')
       .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
@@ -323,7 +323,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       { label: '当前位置', value: position >= 0 ? position : '-', color: '#ff7043', x: varSpacing * 0.5 },
       { label: '左侧最大', value: leftMax, color: '#ff7043', x: varSpacing * 1.5 },
       { label: '右侧最大', value: rightMax, color: '#4caf50', x: varSpacing * 2.5 },
-      { label: '总水量', value: totalWater, color: '#64b5f6', x: width - varSpacing * 0.8 }
+      { label: '总水量', value: totalWater, color: '#1976D2', x: width - varSpacing * 0.8 }
     ];
 
     variables.forEach(v => {
@@ -333,7 +333,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       varGroup.append('text')
         .attr('x', 0)
         .attr('y', 0)
-        .attr('fill', '#aaa')
+        .attr('fill', '#666')
         .style('font-size', '0.7em')
         .text(`${v.label}:`);
 

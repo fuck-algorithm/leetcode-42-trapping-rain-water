@@ -279,7 +279,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         .attr('y', 0)
         .attr('width', width)
         .attr('height', 55)
-        .attr('fill', 'rgba(30, 33, 40, 0.9)')
+        .attr('fill', 'rgba(255, 255, 255, 0.95)')
         .attr('stroke', '#FF9800')
         .attr('stroke-width', 2)
         .attr('rx', 5);
@@ -288,7 +288,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         .attr('x', width / 2)
         .attr('y', 18)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#FFC107')
+        .attr('fill', '#E65100')
         .attr('font-weight', 'bold')
         .style('font-size', '1em')
         .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
@@ -298,9 +298,9 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       const variables = [
         { label: '当前层', value: currentRow, color: '#FF9800', x: varSpacing * 0.5 },
         { label: '当前列', value: currentCol >= 0 ? currentCol : '-', color: '#ff7043', x: varSpacing * 1.5 },
-        { label: '临时水量', value: tempSum, color: '#FFD54F', x: varSpacing * 2.7 },
+        { label: '临时水量', value: tempSum, color: '#F57C00', x: varSpacing * 2.7 },
         { label: '本层水量', value: rowWater, color: '#4CAF50', x: varSpacing * 4 },
-        { label: '总水量', value: totalWater, color: '#64b5f6', x: width - varSpacing * 0.8 }
+        { label: '总水量', value: totalWater, color: '#1976D2', x: width - varSpacing * 0.8 }
       ];
       
       variables.forEach(v => {
@@ -310,7 +310,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         varGroup.append('text')
           .attr('x', 0)
           .attr('y', 0)
-          .attr('fill', '#aaa')
+          .attr('fill', '#666')
           .style('font-size', '0.7em')
           .text(`${v.label}:`);
         
