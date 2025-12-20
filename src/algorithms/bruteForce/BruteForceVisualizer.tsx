@@ -86,7 +86,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     // 定义渐变
     const defs = svg.append('defs');
     
-    // 水的渐变
+    // 水的蓝色填充（类似图片效果）
     const waterGradient = defs.append('linearGradient')
       .attr('id', 'bruteWaterGradient')
       .attr('x1', '0%')
@@ -96,13 +96,13 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     
     waterGradient.append('stop')
       .attr('offset', '0%')
-      .attr('stop-color', '#64B5F6')
-      .attr('stop-opacity', 0.7);
+      .attr('stop-color', '#5B9BD5')
+      .attr('stop-opacity', 1);
     
     waterGradient.append('stop')
       .attr('offset', '100%')
-      .attr('stop-color', '#1E88E5')
-      .attr('stop-opacity', 0.85);
+      .attr('stop-color', '#5B9BD5')
+      .attr('stop-opacity', 1);
 
     const barPadding = heights.length > 20 ? 0.05 : 0.1;
 
@@ -128,7 +128,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .style('font-size', '0.7em')
       .text('高度');
 
-    // 绘制柱子
+    // 绘制柱子 - 黑色柱子
     svg.selectAll('.bar-height')
       .data(heights)
       .enter()
@@ -138,18 +138,15 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .attr('y', d => yScale(d))
       .attr('width', xScale.bandwidth())
       .attr('height', d => height - yScale(d))
-      .attr('fill', (_, i) => {
+      .attr('fill', '#1a1a1a') // 统一黑色柱子
+      .attr('stroke', (_, i) => {
         if (i === position) return '#ff7043'; // 当前处理的位置
         if (scanIndex !== undefined && i === scanIndex) return '#FFC107'; // 扫描位置
-        return '#4285f4';
-      })
-      .attr('stroke', (_, i) => {
-        if (i === position || (scanIndex !== undefined && i === scanIndex)) return '#fff';
-        return 'none';
+        return '#333';
       })
       .attr('stroke-width', (_, i) => {
-        if (i === position || (scanIndex !== undefined && i === scanIndex)) return 2;
-        return 0;
+        if (i === position || (scanIndex !== undefined && i === scanIndex)) return 3;
+        return 1;
       });
 
     // 绘制已计算的水
@@ -241,7 +238,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
           .attr('cx', barX + barWidth / 2)
           .attr('cy', height + 20)
           .attr('r', 10)
-          .attr('fill', isActive ? '#ff7043' : isScan ? '#FFC107' : 'rgba(255, 255, 255, 0.3)')
+          .attr('fill', isActive ? '#ff7043' : isScan ? '#FFC107' : 'rgba(80, 80, 80, 0.8)')
           .attr('stroke', '#fff')
           .attr('stroke-width', 1);
 
@@ -261,25 +258,39 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     const legend = svg.append('g')
       .attr('transform', `translate(${width - 100}, 10)`);
 
+    // 图例背景
+    legend.append('rect')
+      .attr('x', -5)
+      .attr('y', -5)
+      .attr('width', 95)
+      .attr('height', 65)
+      .attr('fill', 'rgba(255, 255, 255, 0.95)')
+      .attr('stroke', '#e0e0e0')
+      .attr('stroke-width', 1)
+      .attr('rx', 4);
+
     const legendItems = [
-      { color: '#4285f4', label: '柱子', y: 0 },
+      { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
       { color: '#ff7043', label: '当前位置', y: 14 },
       { color: '#FFC107', label: '扫描位置', y: 28 },
-      { color: '#1E88E5', label: '雨水', y: 42 }
+      { color: '#5B9BD5', label: '雨水', y: 42 }
     ];
 
-    legendItems.forEach(item => {
+    legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
       legend.append('rect')
         .attr('y', item.y)
         .attr('width', 12)
         .attr('height', 12)
-        .attr('fill', item.color);
+        .attr('fill', item.color)
+        .attr('stroke', item.stroke || 'none')
+        .attr('stroke-width', item.stroke ? 1 : 0);
 
       legend.append('text')
         .attr('x', 16)
         .attr('y', item.y + 9)
-        .attr('fill', 'white')
+        .attr('fill', '#333')
         .style('font-size', '0.65em')
+        .style('font-weight', '500')
         .text(item.label);
     });
 

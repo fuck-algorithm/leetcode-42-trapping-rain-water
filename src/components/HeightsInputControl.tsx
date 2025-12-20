@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
+import { validateHeights, generateRandomHeights } from '../utils/validation';
 
 interface HeightsInputControlProps {
   initialHeights: number[];
   onUpdateHeights: (heights: number[]) => void;
 }
+
+// 预设数据样例
+const PRESET_DATA = [
+  { label: '示例1', data: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1] },
+  { label: '示例2', data: [4, 2, 0, 3, 2, 5] },
+  { label: '阶梯', data: [1, 2, 3, 4, 5, 4, 3, 2, 1] },
+  { label: '凹槽', data: [5, 1, 1, 1, 5] },
+];
 
 const HeightsInputControl: React.FC<HeightsInputControlProps> = ({ 
   initialHeights, 
@@ -14,36 +23,22 @@ const HeightsInputControl: React.FC<HeightsInputControlProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
+    // 清除之前的错误
+    if (error) {
+      setError(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      // Parse the comma-separated values
-      const newHeights = inputValue
-        .split(',')
-        .map(val => val.trim())
-        .filter(val => val !== '')
-        .map(val => {
-          const num = Number(val);
-          if (isNaN(num)) {
-            throw new Error(`Invalid value: ${val} is not a number`);
-          }
-          if (num < 0) {
-            throw new Error(`Invalid value: ${val} is negative`);
-          }
-          return num;
-        });
-      
-      if (newHeights.length < 2) {
-        throw new Error('Please provide at least 2 values');
-      }
-      
+    const result = validateHeights(inputValue);
+    
+    if (result.isValid && result.heights) {
       setError(null);
-      onUpdateHeights(newHeights);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid input');
+      onUpdateHeights(result.heights);
+    } else {
+      setError(result.error || '输入无效');
     }
   };
 
@@ -53,24 +48,14 @@ const HeightsInputControl: React.FC<HeightsInputControlProps> = ({
     onUpdateHeights(initialHeights);
   };
 
-  const handleExample1 = () => {
-    const example = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
-    setInputValue(example.join(','));
+  const handlePreset = (data: number[]) => {
+    setInputValue(data.join(','));
     setError(null);
-    onUpdateHeights(example);
-  };
-
-  const handleExample2 = () => {
-    const example = [4, 2, 0, 3, 2, 5];
-    setInputValue(example.join(','));
-    setError(null);
-    onUpdateHeights(example);
+    onUpdateHeights(data);
   };
 
   const handleRandomGenerate = () => {
-    // 生成长度为8-15的随机高度数组
-    const length = Math.floor(Math.random() * 8) + 8; // 8-15之间的随机数
-    const randomHeights = Array.from({ length }, () => Math.floor(Math.random() * 9) + 1); // 高度在1-9之间
+    const randomHeights = generateRandomHeights(8, 15, 9);
     setInputValue(randomHeights.join(','));
     setError(null);
     onUpdateHeights(randomHeights);
@@ -80,22 +65,29 @@ const HeightsInputControl: React.FC<HeightsInputControlProps> = ({
     <div className="heights-input-control">
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <label htmlFor="heights-input">Heights (comma-separated):</label>
+          <label htmlFor="heights-input">高度数组 (逗号分隔):</label>
           <div className="input-row">
-          <input
-            id="heights-input"
-            type="text"
-            value={inputValue}
-            onChange={handleChange}
-            placeholder="e.g. 0,1,0,2,1,0,1,3,2,1,2,1"
-            className={error ? 'error' : ''}
-          />
+            <input
+              id="heights-input"
+              type="text"
+              value={inputValue}
+              onChange={handleChange}
+              placeholder="例如: 0,1,0,2,1,0,1,3,2,1,2,1"
+              className={error ? 'error' : ''}
+            />
             <div className="buttons-group">
-          <button type="submit">Update</button>
-          <button type="button" onClick={handleReset}>Reset</button>
-              <button type="button" onClick={handleExample1}>Example 1</button>
-              <button type="button" onClick={handleExample2}>Example 2</button>
-              <button type="button" onClick={handleRandomGenerate}>Random</button>
+              <button type="submit">更新</button>
+              <button type="button" onClick={handleReset}>重置</button>
+              {PRESET_DATA.map((preset, index) => (
+                <button 
+                  key={index} 
+                  type="button" 
+                  onClick={() => handlePreset(preset.data)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <button type="button" onClick={handleRandomGenerate}>随机</button>
             </div>
           </div>
         </div>
@@ -105,4 +97,4 @@ const HeightsInputControl: React.FC<HeightsInputControlProps> = ({
   );
 };
 
-export default HeightsInputControl; 
+export default HeightsInputControl;

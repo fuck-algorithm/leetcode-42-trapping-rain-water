@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import HeightsInputControl from './components/HeightsInputControl';
 import PrecomputationVisualizer from './algorithms/precomputation/PrecomputationVisualizer';
@@ -10,6 +10,7 @@ import { RowByRowVisualizer } from './algorithms/rowByRow';
 import WeChatFloat from './components/common/WeChatFloat';
 import GitHubStars from './components/common/GitHubStars';
 import { GithubOutlined } from '@ant-design/icons';
+import { saveSetting, getSetting, SETTING_KEYS } from './utils/indexedDB';
 
 // 默认高度数组
 const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
@@ -25,9 +26,19 @@ function App() {
   const [activeTab, setActiveTab] = useState<string>("twoPointers");
   const [speed, setSpeed] = useState<number>(500);
 
-  // 处理速度变化
+  // 从 IndexedDB 恢复播放速度
+  useEffect(() => {
+    const loadSpeed = async () => {
+      const savedSpeed = await getSetting<number>(SETTING_KEYS.PLAYBACK_SPEED, 500);
+      setSpeed(savedSpeed);
+    };
+    loadSpeed();
+  }, []);
+
+  // 处理速度变化并持久化
   const handleSpeedChange = (newSpeed: number) => {
     setSpeed(newSpeed);
+    saveSetting(SETTING_KEYS.PLAYBACK_SPEED, newSpeed);
   };
 
   // 算法标签页

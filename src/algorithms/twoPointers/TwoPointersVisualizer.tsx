@@ -93,10 +93,10 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
       
-      // 定义水的渐变效果 - 更真实的雨水颜色
+      // 定义水的渐变效果 - 类似图片中的蓝色填充
       const defs = svg.append('defs');
       
-      // 水的垂直渐变（从浅到深，模拟水的深度）
+      // 水的纯色填充（类似图片效果）
       const waterGradient = defs.append('linearGradient')
         .attr('id', 'waterGradient')
         .attr('x1', '0%')
@@ -106,18 +106,13 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       
       waterGradient.append('stop')
         .attr('offset', '0%')
-        .attr('stop-color', '#64B5F6')
-        .attr('stop-opacity', 0.7);
-      
-      waterGradient.append('stop')
-        .attr('offset', '50%')
-        .attr('stop-color', '#42A5F5')
-        .attr('stop-opacity', 0.8);
+        .attr('stop-color', '#5B9BD5')
+        .attr('stop-opacity', 1);
       
       waterGradient.append('stop')
         .attr('offset', '100%')
-        .attr('stop-color', '#1E88E5')
-        .attr('stop-opacity', 0.85);
+        .attr('stop-color', '#5B9BD5')
+        .attr('stop-opacity', 1);
       
       // 高亮水的渐变（当前填充的水）- 更明亮
       const highlightWaterGradient = defs.append('linearGradient')
@@ -129,13 +124,13 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       
       highlightWaterGradient.append('stop')
         .attr('offset', '0%')
-        .attr('stop-color', '#81D4FA')
-        .attr('stop-opacity', 0.9);
+        .attr('stop-color', '#7EC8E3')
+        .attr('stop-opacity', 1);
       
       highlightWaterGradient.append('stop')
         .attr('offset', '100%')
-        .attr('stop-color', '#29B6F6')
-        .attr('stop-opacity', 0.95);
+        .attr('stop-color', '#7EC8E3')
+        .attr('stop-opacity', 1);
       
       // 添加水波纹滤镜效果
       const turbulence = defs.append('filter')
@@ -163,7 +158,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .attr('xChannelSelector', 'R')
         .attr('yChannelSelector', 'G');
       
-      // 柱子的渐变效果 - 增加立体感
+      // 柱子的渐变效果 - 黑色柱子
       const barGradient = defs.append('linearGradient')
         .attr('id', 'barGradient')
         .attr('x1', '0%')
@@ -173,7 +168,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       
       barGradient.append('stop')
         .attr('offset', '0%')
-        .attr('stop-color', 'rgba(255, 255, 255, 0.1)');
+        .attr('stop-color', 'rgba(255, 255, 255, 0.15)');
       
       barGradient.append('stop')
         .attr('offset', '50%')
@@ -181,7 +176,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       
       barGradient.append('stop')
         .attr('offset', '100%')
-        .attr('stop-color', 'rgba(0, 0, 0, 0.2)');
+        .attr('stop-color', 'rgba(0, 0, 0, 0.3)');
       
       // 根据数组长度调整柱子间隔
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
@@ -222,7 +217,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .style('font-size', '0.7em')
         .text('高度');
       
-      // Draw height bars with animation
+      // Draw height bars with animation - 黑色柱子
       svg.selectAll('.bar-height')
         .data(heights)
         .enter()
@@ -232,19 +227,15 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
         .attr('y', height) // 从底部开始
         .attr('width', xScale.bandwidth())
         .attr('height', 0) // 初始高度为0
-        .attr('fill', (_, i) => {
+        .attr('fill', '#1a1a1a') // 统一黑色柱子
+        .attr('stroke', (_, i) => {
           if (i === left) return '#ff7043';
           if (i === right) return '#4caf50';
-          if (i > left && i < right) return '#64b5f6';
-          return '#757575';
-        })
-        .attr('stroke', (_, i) => {
-          if (i === left || i === right) return '#fff';
-          return 'none';
+          return '#333';
         })
         .attr('stroke-width', (_, i) => {
-          if (i === left || i === right) return 2;
-          return 0;
+          if (i === left || i === right) return 3;
+          return 1;
         })
         .transition() // 添加过渡动画
         .duration(transitionDuration)
@@ -397,15 +388,25 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
       const legend = svg.append('g')
         .attr('transform', `translate(${width - 95}, 10)`);
       
+      // 图例背景
+      legend.append('rect')
+        .attr('x', -5)
+        .attr('y', -5)
+        .attr('width', 100)
+        .attr('height', 65)
+        .attr('fill', 'rgba(255, 255, 255, 0.95)')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-width', 1)
+        .attr('rx', 4);
+      
       const legendItems = [
-        { color: '#ff7043', label: '左指针(L)', y: 0 },
-        { color: '#4caf50', label: '右指针(R)', y: 14 },
-        { color: '#64b5f6', label: '待处理', y: 28 },
-        { color: '#757575', label: '已处理', y: 42 },
-        { color: 'rgba(100, 181, 246, 0.4)', label: '雨水', y: 56 }
+        { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
+        { color: '#ff7043', label: '左指针(L)', y: 14, isPointer: true },
+        { color: '#4caf50', label: '右指针(R)', y: 28, isPointer: true },
+        { color: '#5B9BD5', label: '雨水', y: 42 }
       ];
       
-      legendItems.forEach((item, index) => {
+      legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string; isPointer?: boolean }, index: number) => {
         const legendItem = legend.append('g')
           .attr('class', `legend-item-${index}`)
           .style('opacity', 0);
@@ -415,14 +416,15 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
           .attr('width', 12)
           .attr('height', 12)
           .attr('fill', item.color)
-          .attr('stroke', item.y < 28 ? '#fff' : 'none')
-          .attr('stroke-width', item.y < 28 ? 1 : 0);
+          .attr('stroke', item.stroke || (item.isPointer ? item.color : 'none'))
+          .attr('stroke-width', item.stroke || item.isPointer ? 1 : 0);
         
         legendItem.append('text')
           .attr('x', 16)
           .attr('y', item.y + 9)
-          .attr('fill', 'white')
+          .attr('fill', '#333')
           .style('font-size', '0.65em')
+          .style('font-weight', '500')
           .text(item.label);
         
         // 逐项淡入动画
@@ -445,7 +447,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({
           .attr('cx', barX + barWidth / 2)
           .attr('cy', height - 15)
           .attr('r', isActivePointer ? 8 : 11) // 初始半径
-          .attr('fill', i === left ? '#ff7043' : i === right ? '#4caf50' : 'rgba(255, 255, 255, 0.3)')
+          .attr('fill', i === left ? '#ff7043' : i === right ? '#4caf50' : 'rgba(80, 80, 80, 0.8)')
           .attr('stroke', '#fff')
           .attr('stroke-width', isActivePointer ? 2 : 1.5)
           .style('opacity', 0.6);

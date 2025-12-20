@@ -138,7 +138,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .style('font-size', '0.7em')
         .text('高度');
       
-      // Draw height bars
+      // Draw height bars - 黑色柱子
       svg.selectAll('.bar-height')
         .data(heights)
         .enter()
@@ -148,17 +148,22 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .attr('y', d => yScale(d))
         .attr('width', xScale.bandwidth())
         .attr('height', d => height - yScale(d))
-        .attr('fill', (_, i) => {
+        .attr('fill', '#1a1a1a') // 统一黑色柱子
+        .attr('stroke', (_, i) => {
           // 根据当前阶段和索引高亮显示当前处理的位置
           if (i === currentIndex) {
             if (phase === 'leftScan') return '#ff7043';
             if (phase === 'rightScan') return '#4caf50';
             if (phase === 'waterCalculation') return '#fdd835';
           }
-          return '#4285f4';
+          return '#333';
+        })
+        .attr('stroke-width', (_, i) => {
+          if (i === currentIndex) return 3;
+          return 1;
         });
       
-      // Draw water bars
+      // Draw water bars - 蓝色填充
       svg.selectAll('.bar-water')
         .data(water)
         .enter()
@@ -170,8 +175,8 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .attr('height', d => d > 0 ? height - yScale(d) : 0)
         .attr('fill', (_, i) => {
           return i === currentIndex && phase === 'waterCalculation' 
-            ? 'rgba(33, 150, 243, 0.6)' 
-            : 'rgba(66, 133, 244, 0.3)';
+            ? '#7EC8E3' // 高亮当前计算的水
+            : '#5B9BD5'; // 统一蓝色
         });
       
       // Draw left max line (只在数组长度适中时绘制)
@@ -206,17 +211,31 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       const legend = svg.append('g')
         .attr('transform', `translate(${width - 80}, 5)`);
       
+      // 图例背景
+      legend.append('rect')
+        .attr('x', -5)
+        .attr('y', -5)
+        .attr('width', 70)
+        .attr('height', 40)
+        .attr('fill', 'rgba(255, 255, 255, 0.95)')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-width', 1)
+        .attr('rx', 4);
+      
       // Height bar legend
       legend.append('rect')
         .attr('width', 10)
         .attr('height', 10)
-        .attr('fill', '#4285f4');
+        .attr('fill', '#1a1a1a')
+        .attr('stroke', '#333')
+        .attr('stroke-width', 1);
       
       legend.append('text')
         .attr('x', 14)
         .attr('y', 8)
-        .attr('fill', 'white')
+        .attr('fill', '#333')
         .style('font-size', '0.65em')
+        .style('font-weight', '500')
         .text('高度');
       
       // Water bar legend
@@ -224,13 +243,14 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .attr('y', 14)
         .attr('width', 10)
         .attr('height', 10)
-        .attr('fill', 'rgba(66, 133, 244, 0.3)');
+        .attr('fill', '#5B9BD5');
       
       legend.append('text')
         .attr('x', 14)
         .attr('y', 22)
-        .attr('fill', 'white')
+        .attr('fill', '#333')
         .style('font-size', '0.65em')
+        .style('font-weight', '500')
         .text('雨水');
       
       // Add water amount

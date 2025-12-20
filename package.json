@@ -23,7 +23,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=48046 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -48,7 +48,10 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "node_modules/(?!(d3|d3-.*|internmap|delaunator|robust-predicates)/)"
+      "node_modules/(?!(d3|d3-.*|internmap|delaunator|robust-predicates|fast-check|pure-rand)/)"
     ]
+  },
+  "devDependencies": {
+    "fast-check": "^4.5.0"
   }
 }

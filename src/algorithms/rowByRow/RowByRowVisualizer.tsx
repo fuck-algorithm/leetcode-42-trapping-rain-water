@@ -81,7 +81,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       // 定义渐变
       const defs = svg.append('defs');
       
-      // 水的渐变
+      // 水的蓝色填充（类似图片效果）
       const waterGradient = defs.append('linearGradient')
         .attr('id', 'rowWaterGradient')
         .attr('x1', '0%')
@@ -91,13 +91,13 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       waterGradient.append('stop')
         .attr('offset', '0%')
-        .attr('stop-color', '#64B5F6')
-        .attr('stop-opacity', 0.7);
+        .attr('stop-color', '#5B9BD5')
+        .attr('stop-opacity', 1);
       
       waterGradient.append('stop')
         .attr('offset', '100%')
-        .attr('stop-color', '#1E88E5')
-        .attr('stop-opacity', 0.85);
+        .attr('stop-color', '#5B9BD5')
+        .attr('stop-opacity', 1);
 
       // 当前行高亮水渐变
       const currentRowWaterGradient = defs.append('linearGradient')
@@ -109,13 +109,13 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       currentRowWaterGradient.append('stop')
         .attr('offset', '0%')
-        .attr('stop-color', '#FFD54F')
-        .attr('stop-opacity', 0.9);
+        .attr('stop-color', '#7EC8E3')
+        .attr('stop-opacity', 1);
       
       currentRowWaterGradient.append('stop')
         .attr('offset', '100%')
-        .attr('stop-color', '#FF9800')
-        .attr('stop-opacity', 0.95);
+        .attr('stop-color', '#7EC8E3')
+        .attr('stop-opacity', 1);
       
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
       
@@ -173,17 +173,17 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           const cellHeight = yScale(row - 1) - yScale(row);
           
           if (row <= heights[col]) {
-            // 这是柱子的一部分
+            // 这是柱子的一部分 - 黑色柱子
             svg.append('rect')
               .attr('x', barX)
               .attr('y', cellY)
               .attr('width', barWidth)
               .attr('height', cellHeight)
-              .attr('fill', col === currentCol && row === currentRow ? '#ff7043' : '#4285f4')
-              .attr('stroke', '#2c3e50')
-              .attr('stroke-width', 0.5);
+              .attr('fill', '#1a1a1a') // 统一黑色柱子
+              .attr('stroke', col === currentCol && row === currentRow ? '#ff7043' : '#333')
+              .attr('stroke-width', col === currentCol && row === currentRow ? 2 : 0.5);
           } else if (waterMatrix[row - 1] && waterMatrix[row - 1][col] === 1) {
-            // 这是水
+            // 这是水 - 蓝色填充
             const isCurrentRow = row === currentRow;
             svg.append('rect')
               .attr('x', barX)
@@ -191,9 +191,8 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
               .attr('width', barWidth)
               .attr('height', cellHeight)
               .attr('fill', isCurrentRow ? 'url(#currentRowWaterGradient)' : 'url(#rowWaterGradient)')
-              .attr('stroke', isCurrentRow ? '#FF6F00' : '#1565C0')
-              .attr('stroke-width', 0.5)
-              .style('opacity', isCurrentRow ? 1 : 0.7);
+              .attr('stroke', isCurrentRow ? '#5B9BD5' : '#4A8BC2')
+              .attr('stroke-width', 0.5);
           }
         }
         
@@ -215,7 +214,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
             .attr('cx', barX + barWidth / 2)
             .attr('cy', height + 25)
             .attr('r', 10)
-            .attr('fill', i === currentCol ? '#ff7043' : 'rgba(255, 255, 255, 0.3)')
+            .attr('fill', i === currentCol ? '#ff7043' : 'rgba(80, 80, 80, 0.8)')
             .attr('stroke', '#fff')
             .attr('stroke-width', 1);
           
@@ -234,25 +233,39 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       const legend = svg.append('g')
         .attr('transform', `translate(${width - 100}, 10)`);
       
+      // 图例背景
+      legend.append('rect')
+        .attr('x', -5)
+        .attr('y', -5)
+        .attr('width', 95)
+        .attr('height', 65)
+        .attr('fill', 'rgba(255, 255, 255, 0.95)')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-width', 1)
+        .attr('rx', 4);
+      
       const legendItems = [
-        { color: '#4285f4', label: '柱子', y: 0 },
-        { color: '#1E88E5', label: '已确认水', y: 14 },
-        { color: '#FF9800', label: '当前层水', y: 28 },
+        { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
+        { color: '#5B9BD5', label: '已确认水', y: 14 },
+        { color: '#7EC8E3', label: '当前层水', y: 28 },
         { color: '#ff7043', label: '当前位置', y: 42 }
       ];
       
-      legendItems.forEach(item => {
+      legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
         legend.append('rect')
           .attr('y', item.y)
           .attr('width', 12)
           .attr('height', 12)
-          .attr('fill', item.color);
+          .attr('fill', item.color)
+          .attr('stroke', item.stroke || 'none')
+          .attr('stroke-width', item.stroke ? 1 : 0);
         
         legend.append('text')
           .attr('x', 16)
           .attr('y', item.y + 9)
-          .attr('fill', 'white')
+          .attr('fill', '#333')
           .style('font-size', '0.65em')
+          .style('font-weight', '500')
           .text(item.label);
       });
       

@@ -10,7 +10,7 @@
 .brute-force-visualizer .algorithm-header {
   flex-shrink: 0;
   padding: 4px 8px;
-  background-color: rgba(30, 33, 40, 0.5);
+  background-color: rgba(240, 240, 240, 0.9);
   border-radius: 4px;
   margin-bottom: 3px;
 }
@@ -33,7 +33,7 @@
 
 .brute-force-visualizer .phase-description {
   font-size: 0.75rem;
-  color: #aaa;
+  color: #666;
   margin-top: 2px;
 }
 
@@ -65,7 +65,7 @@
 
 .brute-force-visualizer .stats {
   font-size: 0.85rem;
-  color: #fff;
+  color: #333;
 }
 
 .brute-force-visualizer .total-water {

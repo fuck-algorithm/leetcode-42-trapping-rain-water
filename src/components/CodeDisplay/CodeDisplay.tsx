@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CodeDisplay.css';
+import { saveSetting, getSetting, SETTING_KEYS } from '../../utils/indexedDB';
 
 // 支持的编程语言
 export type Language = 'java' | 'python' | 'golang' | 'javascript';
@@ -99,6 +100,21 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('javascript');
   const [isCollapsed, setIsCollapsed] = useState(false);
   
+  // 从 IndexedDB 恢复语言选择
+  useEffect(() => {
+    const loadLanguage = async () => {
+      const savedLanguage = await getSetting<Language>(SETTING_KEYS.SELECTED_LANGUAGE, 'javascript');
+      setSelectedLanguage(savedLanguage);
+    };
+    loadLanguage();
+  }, []);
+
+  // 处理语言切换并持久化
+  const handleLanguageChange = (lang: Language) => {
+    setSelectedLanguage(lang);
+    saveSetting(SETTING_KEYS.SELECTED_LANGUAGE, lang);
+  };
+  
   // 获取当前代码
   const currentCode = codes[selectedLanguage] || '';
   const lines = currentCode.split('\n');
@@ -120,7 +136,7 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({
             <button
               key={lang}
               className={`language-tab ${selectedLanguage === lang ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage(lang)}
+              onClick={() => handleLanguageChange(lang)}
             >
               {languageConfig[lang].name}
             </button>

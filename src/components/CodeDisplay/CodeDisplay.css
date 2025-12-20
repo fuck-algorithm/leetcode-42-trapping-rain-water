@@ -1,5 +1,5 @@
 .code-display {
-  background-color: #1e1e1e;
+  background-color: #fafafa;
   border-radius: 6px;
   overflow: hidden;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -7,6 +7,7 @@
   max-height: 300px;
   display: flex;
   flex-direction: column;
+  border: 1px solid #e0e0e0;
 }
 
 .code-display.collapsed {
@@ -18,27 +19,27 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #3a3a3a;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .code-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #ccc;
+  color: #333;
   font-size: 12px;
   cursor: pointer;
   user-select: none;
 }
 
 .code-title:hover {
-  color: #fff;
+  color: #000;
 }
 
 .toggle-icon {
   font-size: 10px;
-  color: #888;
+  color: #666;
 }
 
 .language-tabs {
@@ -51,15 +52,15 @@
   background: none;
   border: 1px solid transparent;
   border-radius: 3px;
-  color: #888;
+  color: #666;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .language-tab:hover {
-  color: #ccc;
-  background-color: rgba(255, 255, 255, 0.05);
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .language-tab.active {
@@ -88,7 +89,7 @@
 }
 
 .code-line:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .code-line.current {
@@ -102,7 +103,7 @@
 
 .line-number {
   flex: 0 0 35px;
-  color: #5a5a5a;
+  color: #999;
   text-align: right;
   padding-right: 12px;
   user-select: none;
@@ -112,7 +113,7 @@
 .line-content {
   flex: 1;
   white-space: pre;
-  color: #d4d4d4;
+  color: #333;
 }
 
 .line-variables {
@@ -160,14 +161,14 @@
 }
 
 .code-content::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #fafafa;
 }
 
 .code-content::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
+  background: #ccc;
   border-radius: 4px;
 }
 
 .code-content::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+  background: #aaa;
 }

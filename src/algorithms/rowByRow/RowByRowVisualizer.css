@@ -6,7 +6,7 @@
 }
 
 .row-by-row-visualizer .algorithm-description-compact {
-  background: rgba(30, 33, 40, 0.95);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   padding: 10px 15px;
   margin-bottom: 10px;
@@ -29,11 +29,11 @@
 
 .row-by-row-visualizer .toggle-icon {
   font-size: 0.7em;
-  color: #aaa;
+  color: #666;
 }
 
 .row-by-row-visualizer .brief-description {
-  color: #ccc;
+  color: #666;
   font-size: 0.85em;
   margin: 0;
 }
@@ -42,7 +42,7 @@
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 152, 0, 0.3);
-  color: #ddd;
+  color: #333;
 }
 
 .row-by-row-visualizer .detailed-description p {
