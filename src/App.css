@@ -11,9 +11,10 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100% - 26px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
-  padding-top: 1px;
+  padding-top: 2px;
 }
 
 .App-logo {
@@ -28,14 +29,17 @@
 }
 
 .App-header {
-  padding: 2px 6px;
+  padding: 3px 8px;
   background-color: #282c34;
   color: white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  height: 24px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
   display: flex;
   align-items: center;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .header-flex {
@@ -108,14 +112,16 @@ h1 {
   flex: 0 0 auto;
   width: 100%;
   margin: 0;
-  padding: 2px 4px;
+  padding: 3px 6px;
   background-color: #1e2128;
   border-radius: 2px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   z-index: 5;
+  max-height: 40px;
+  overflow: hidden;
 }
 
 .heights-input-control {
@@ -215,7 +221,7 @@ h1 {
   display: flex;
   overflow: hidden;
   position: relative;
-  height: calc(100% - 30px - 18px); /* 减去header和tab高度 */
+  min-height: 0;
 }
 
 .visualization-container {
@@ -234,9 +240,26 @@ h1 {
 
 .visualization-wrapper {
   width: 100%;
-  height: 100%;
+  flex: 1; /* 占据剩余空间 */
+  min-height: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+.visualization-wrapper svg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: visible; /* 允许SVG内容溢出显示索引 */
+}
+
+.visualization-wrapper .animation-controls {
+  flex: 0 0 auto;
+  height: 50px;
+  background-color: rgba(30, 33, 40, 0.9);
+  border-top: 1px solid #3a3a3a;
 }
 
 .algorithm-visualizer {
@@ -252,18 +275,125 @@ h1 {
   text-align: left;
   margin-bottom: 0.3vh;
   color: #fff;
+  max-height: 25vh; /* 限制最大高度 */
+  overflow-y: auto; /* 添加滚动条 */
+  padding-right: 5px;
+  flex-shrink: 0; /* 防止被压缩 */
 }
 
 .algorithm-description h2 {
-  margin: 0 0 0.3vh 0;
-  font-size: clamp(1rem, 1.8vh, 1.5rem);
+  margin: 0 0 0.2vh 0;
+  font-size: clamp(0.85rem, 1.5vh, 1.2rem);
   color: #61dafb;
 }
 
 .algorithm-description p {
+  margin: 0 0 0.2vh 0;
+  font-size: clamp(0.65rem, 1vh, 0.8rem);
+  line-height: 1.2;
+}
+
+.algorithm-description ul {
+  margin: 0.2vh 0;
+  padding-left: 15px;
+}
+
+.algorithm-description li {
+  margin: 0.1vh 0;
+  font-size: clamp(0.65rem, 1vh, 0.8rem);
+  line-height: 1.2;
+}
+
+/* 紧凑型算法描述 - 可折叠 */
+.algorithm-description-compact {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 3px;
+  color: #fff;
+  flex-shrink: 0;
+  background-color: rgba(30, 33, 40, 0.5);
+  border-radius: 4px;
+  padding: 3px 8px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.algorithm-description-compact .description-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.algorithm-description-compact .description-header:hover {
+  background-color: rgba(66, 133, 244, 0.1);
+  border-radius: 3px;
+}
+
+.algorithm-description-compact h2 {
   margin: 0;
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  font-size: clamp(0.9rem, 1.6vh, 1.3rem);
+  color: #61dafb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.algorithm-description-compact .toggle-icon {
+  font-size: 0.7em;
+  color: #888;
+  margin-left: 10px;
+}
+
+.algorithm-description-compact .brief-description {
+  margin: 2px 0 0 0;
+  font-size: clamp(0.7rem, 1.1vh, 0.85rem);
+  color: #aaa;
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.speech-toggle-btn {
+  background: rgba(66, 133, 244, 0.2);
+  border: 1px solid rgba(66, 133, 244, 0.4);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 1.2em;
+  transition: all 0.2s;
+  margin-left: 10px;
+}
+
+.speech-toggle-btn:hover {
+  background: rgba(66, 133, 244, 0.3);
+  border-color: rgba(66, 133, 244, 0.6);
+  transform: scale(1.1);
+}
+
+.speech-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.algorithm-description-compact .detailed-description {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: clamp(0.7rem, 1.1vh, 0.85rem);
+}
+
+.algorithm-description-compact .detailed-description p {
+  margin: 0 0 5px 0;
+}
+
+.algorithm-description-compact .detailed-description ol,
+.algorithm-description-compact .detailed-description ul {
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.algorithm-description-compact .detailed-description li {
+  margin: 3px 0;
 }
 
 /* 修改tab样式以适应全屏 */

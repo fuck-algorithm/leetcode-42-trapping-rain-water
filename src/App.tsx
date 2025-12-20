@@ -6,6 +6,7 @@ import MonotonicStackVisualizer from './algorithms/monotonicStack/MonotonicStack
 import TwoPointersVisualizer from './algorithms/twoPointers/TwoPointersVisualizer';
 import TabControl from './components/common/TabControl';
 import BruteForceAnimation from './algorithms/bruteForce/BruteForceAnimation';
+import { RowByRowVisualizer } from './algorithms/rowByRow';
 
 // 默认高度数组
 const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
@@ -13,7 +14,7 @@ const defaultHeights = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
 function App() {
   // 状态
   const [heights, setHeights] = useState<number[]>(defaultHeights);
-  const [activeTab, setActiveTab] = useState<string>("precomputation");
+  const [activeTab, setActiveTab] = useState<string>("twoPointers");
   const [speed, setSpeed] = useState<number>(500);
   
   // 视口尺寸状态
@@ -43,6 +44,11 @@ function App() {
   // 算法标签页
   const algorithmTabs = [
     {
+      id: "twoPointers",
+      title: "双指针法",
+      content: <TwoPointersVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
+    },
+    {
       id: "precomputation",
       title: "双数组法",
       content: <PrecomputationVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
@@ -53,14 +59,14 @@ function App() {
       content: <MonotonicStackVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     },
     {
-      id: "twoPointers",
-      title: "双指针法",
-      content: <TwoPointersVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
+      id: "bruteForce",
+      title: "暴力法(按列)",
+      content: <BruteForceAnimation heights={heights} />
     },
     {
-      id: "bruteForce",
-      title: "暴力法",
-      content: <BruteForceAnimation heights={heights} />
+      id: "rowByRow",
+      title: "按行求法",
+      content: <RowByRowVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     }
   ];
 

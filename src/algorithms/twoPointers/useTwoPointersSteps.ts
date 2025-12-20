@@ -9,7 +9,23 @@ export interface TwoPointersStep {
   water: number[];
   totalWater: number;
   currentFill?: number;
-  phase: 'init' | 'moveLeft' | 'moveRight' | 'complete';
+  phase: 'init' | 'compare' | 'moveLeft' | 'moveRight' | 'complete';
+  description?: string; // 当前步骤的详细描述
+  // 决策逻辑
+  decision?: {
+    leftHeight: number;
+    rightHeight: number;
+    comparison: 'left_smaller' | 'right_smaller' | 'equal';
+    action: 'move_left' | 'move_right' | 'none';
+    reason: string;
+  };
+  // 水量计算
+  calculation?: {
+    formula: string;
+    maxValue: number;
+    currentHeight: number;
+    waterAmount: number;
+  };
 }
 
 interface UseTwoPointersStepsProps {
@@ -48,10 +64,39 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       rightMax,
       water: [...water],
       totalWater: 0,
-      phase: 'init'
+      phase: 'init',
+      description: `初始化：左指针在位置${left}，右指针在位置${right}，leftMax=${leftMax}，rightMax=${rightMax}`
     });
 
     while (left < right) {
+      // 添加比较步骤
+      const leftHeight = heights[left];
+      const rightHeight = heights[right];
+      const comparison = leftHeight < rightHeight ? 'left_smaller' : 
+                        leftHeight > rightHeight ? 'right_smaller' : 'equal';
+      const willMoveLeft = heights[left] <= heights[right];
+      
+      generatedSteps.push({
+        heights,
+        left,
+        right,
+        leftMax,
+        rightMax,
+        water: [...water],
+        totalWater,
+        phase: 'compare',
+        description: `比较：height[${left}]=${leftHeight} ${willMoveLeft ? '≤' : '>'} height[${right}]=${rightHeight}，所以移动${willMoveLeft ? '左' : '右'}指针`,
+        decision: {
+          leftHeight,
+          rightHeight,
+          comparison,
+          action: willMoveLeft ? 'move_left' : 'move_right',
+          reason: willMoveLeft 
+            ? `左侧更矮(${leftHeight} ≤ ${rightHeight})，移动左指针。因为右侧更高，左侧的水量已确定，不会被右侧影响。`
+            : `右侧更矮(${rightHeight} < ${leftHeight})，移动右指针。因为左侧更高，右侧的水量已确定，不会被左侧影响。`
+        }
+      });
+      
       // 从左边向中间移动
       if (heights[left] <= heights[right]) {
         left++;
@@ -72,7 +117,14 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             water: [...water],
             totalWater,
             currentFill: fill,
-            phase: 'moveLeft'
+            phase: 'moveLeft',
+            description: `左指针移到位置${left}：height[${left}]=${heights[left]} < leftMax=${leftMax}，填充雨水${fill}单位`,
+            calculation: {
+              formula: `leftMax - height[${left}]`,
+              maxValue: leftMax,
+              currentHeight: heights[left],
+              waterAmount: fill
+            }
           });
         } 
         // 如果当前高度大于等于leftMax，更新leftMax
@@ -88,7 +140,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             rightMax,
             water: [...water],
             totalWater,
-            phase: 'moveLeft'
+            phase: 'moveLeft',
+            description: `左指针移到位置${left}：height[${left}]=${heights[left]} ≥ 旧leftMax，更新leftMax=${leftMax}。这里不能装水，但更新了左侧的最大高度。`
           });
         }
       } 
@@ -112,7 +165,14 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             water: [...water],
             totalWater,
             currentFill: fill,
-            phase: 'moveRight'
+            phase: 'moveRight',
+            description: `右指针移到位置${right}：height[${right}]=${heights[right]} < rightMax=${rightMax}，填充雨水${fill}单位`,
+            calculation: {
+              formula: `rightMax - height[${right}]`,
+              maxValue: rightMax,
+              currentHeight: heights[right],
+              waterAmount: fill
+            }
           });
         } 
         // 如果当前高度大于等于rightMax，更新rightMax
@@ -128,7 +188,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             rightMax,
             water: [...water],
             totalWater,
-            phase: 'moveRight'
+            phase: 'moveRight',
+            description: `右指针移到位置${right}：height[${right}]=${heights[right]} ≥ 旧rightMax，更新rightMax=${rightMax}。这里不能装水，但更新了右侧的最大高度。`
           });
         }
       }
@@ -143,7 +204,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       rightMax,
       water: [...water],
       totalWater,
-      phase: 'complete'
+      phase: 'complete',
+      description: `计算完成：左右指针相遇于位置${left}，总雨水量=${totalWater}单位`
     });
 
     setSteps(generatedSteps);

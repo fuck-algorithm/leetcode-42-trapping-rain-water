@@ -1,0 +1,66 @@
+.row-by-row-visualizer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.row-by-row-visualizer .algorithm-description-compact {
+  background: rgba(30, 33, 40, 0.95);
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  border: 1px solid #FF9800;
+}
+
+.row-by-row-visualizer .description-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.row-by-row-visualizer .description-header h2 {
+  color: #FF9800;
+  font-size: 1.1em;
+  margin: 0 0 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-by-row-visualizer .toggle-icon {
+  font-size: 0.7em;
+  color: #aaa;
+}
+
+.row-by-row-visualizer .brief-description {
+  color: #ccc;
+  font-size: 0.85em;
+  margin: 0;
+}
+
+.row-by-row-visualizer .detailed-description {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 152, 0, 0.3);
+  color: #ddd;
+}
+
+.row-by-row-visualizer .detailed-description p {
+  margin: 5px 0;
+}
+
+.row-by-row-visualizer .detailed-description ol,
+.row-by-row-visualizer .detailed-description ul {
+  margin: 5px 0;
+}
+
+.row-by-row-visualizer .visualization-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 400px;
+}
+
+.row-by-row-visualizer .d3-component {
+  width: 100%;
+  height: 100%;
+}

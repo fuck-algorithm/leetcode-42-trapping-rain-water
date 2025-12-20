@@ -67,7 +67,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       d3.select(d3Container.current).selectAll('*').remove();
       
       // 设置尺寸，减小边距
-      const controlsHeight = 30;
+      const controlsHeight = 50; // AnimationControls的高度
       const margin = { top: 8, right: 15, bottom: 20, left: 25 };
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
@@ -269,8 +269,6 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       <div className="visualization-wrapper">
         <svg
           ref={d3Container}
-          width={dimensions.width}
-          height={dimensions.height - 30} // 留出控制面板的空间
           className="d3-component"
         />
         <AnimationControls
