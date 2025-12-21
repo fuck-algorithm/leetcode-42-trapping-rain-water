@@ -1,3 +1,4 @@
+/* 主应用容器 - 全屏布局 */
 .App {
   display: flex;
   flex-direction: column;
@@ -7,35 +8,15 @@
   background-color: #f5f5f5;
 }
 
-.App-content {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding-top: 2px;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
+/* 紧凑型头部 - 最小化高度 */
 .App-header {
-  padding: 3px 8px;
+  padding: 2px 8px;
   background-color: #ffffff;
   color: #333;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  height: 28px;
-  min-height: 28px;
-  max-height: 28px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
   display: flex;
   align-items: center;
   z-index: 10;
@@ -47,14 +28,14 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   height: 100%;
 }
 
 .App-header h1 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -70,14 +51,24 @@
   text-decoration: underline;
 }
 
+.App-header .description {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 400;
+  max-width: 50%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .github-link {
   margin-left: auto;
   color: #333;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   transition: color 0.2s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
-  padding: 4px;
+  padding: 2px;
 }
 
 .github-link:hover {
@@ -85,164 +76,37 @@
   transform: scale(1.1);
 }
 
-.App-header .description {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 400;
-  max-width: 70%;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.rain-water-container {
-  width: 100%;
-  height: 100%;
+/* 主内容区域 - 画布优先布局 */
+.App-content {
   display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.d3-component {
+  flex-direction: row;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-h1 {
-  margin: 0 0 0.5vh 0;
-  color: #1890ff;
-  font-size: clamp(1.2rem, 2.5vh, 2rem);
-}
-
-.bar-height {
-  stroke: #282c34;
-  stroke-width: 1px;
-}
-
-.bar-water {
-  stroke: #282c34;
-  stroke-width: 1px;
-}
-
-.control-panel {
-  flex: 0 0 auto;
-  width: 100%;
-  margin: 0;
-  padding: 3px 6px;
-  background-color: #ffffff;
-  border-radius: 2px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 5;
-  max-height: 40px;
-  overflow: hidden;
-}
-
-.heights-input-control {
-  width: 100%;
-}
-
-.heights-input-control .input-group {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-bottom: 2px;
-}
-
-.heights-input-control .input-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.heights-input-control .buttons-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.heights-input-control label {
-  flex: 0 0 auto;
-  margin-right: 3px;
-  font-weight: 500;
-  font-size: 0.7rem;
-  color: #333;
-}
-
-.heights-input-control input {
   flex: 1;
-  min-width: 200px;
-  padding: 2px 4px;
-  border: 1px solid #d9d9d9;
-  background-color: #ffffff;
-  color: #333;
-  border-radius: 2px;
-  font-size: 0.7rem;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.heights-input-control input.error {
-  border-color: #ff5252;
-}
-
-.heights-input-control .error-message {
-  color: #ff5252;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  font-size: clamp(0.8rem, 1.5vh, 1rem);
-}
-
-.heights-input-control button {
-  padding: 1px 5px;
-  height: 20px;
-  background-color: #1890ff;
-  color: #ffffff;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-  font-size: 0.7rem;
-}
-
-.heights-input-control button:hover {
-  background-color: #40a9ff;
-}
-
-.heights-input-control .examples {
-  display: none;
-}
-
-.description {
-  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
-  margin: 0 0 0.5vh 0;
-  width: 100%;
-  color: #666;
-  text-align: center;
-}
-
-.animated-rain-water-container {
+/* 控制面板 - 紧凑型顶部栏 */
+.control-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 2px 6px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e0e0e0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  margin-bottom: 1vh;
+  gap: 4px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  backdrop-filter: blur(4px);
 }
 
+/* 可视化面板 - 占据主要空间 */
 .visualization-panel {
   flex: 1;
   width: 100%;
@@ -252,6 +116,7 @@ h1 {
   min-height: 0;
 }
 
+/* 可视化容器 */
 .visualization-container {
   width: 100%;
   height: 100%;
@@ -263,12 +128,12 @@ h1 {
   overflow: hidden;
   flex: 1;
   position: relative;
-  padding-bottom: 30px; /* 为控制面板预留空间 */
 }
 
+/* 可视化包装器 - 画布主区域 */
 .visualization-wrapper {
   width: 100%;
-  flex: 1; /* 占据剩余空间 */
+  flex: 1;
   min-height: 0;
   position: relative;
   display: flex;
@@ -280,17 +145,18 @@ h1 {
   flex: 1;
   min-height: 0;
   width: 100%;
-  overflow: visible; /* 允许SVG内容溢出显示索引 */
+  overflow: visible;
 }
 
 .visualization-wrapper .animation-controls {
   flex: 0 0 auto;
-  height: 60px;
+  height: 50px;
   background-color: #2d3748;
   border-top: 1px solid #4a5568;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
 }
 
+/* 算法可视化器 */
 .algorithm-visualizer {
   width: 100%;
   height: 100%;
@@ -299,51 +165,17 @@ h1 {
   overflow: hidden;
 }
 
-.algorithm-description {
-  width: 100%;
-  text-align: left;
-  margin-bottom: 0.3vh;
-  color: #333;
-  max-height: 25vh; /* 限制最大高度 */
-  overflow-y: auto; /* 添加滚动条 */
-  padding-right: 5px;
-  flex-shrink: 0; /* 防止被压缩 */
-}
-
-.algorithm-description h2 {
-  margin: 0 0 0.2vh 0;
-  font-size: clamp(0.85rem, 1.5vh, 1.2rem);
-  color: #1890ff;
-}
-
-.algorithm-description p {
-  margin: 0 0 0.2vh 0;
-  font-size: clamp(0.65rem, 1vh, 0.8rem);
-  line-height: 1.2;
-}
-
-.algorithm-description ul {
-  margin: 0.2vh 0;
-  padding-left: 15px;
-}
-
-.algorithm-description li {
-  margin: 0.1vh 0;
-  font-size: clamp(0.65rem, 1vh, 0.8rem);
-  line-height: 1.2;
-}
-
-/* 紧凑型算法描述 - 可折叠 */
+/* 紧凑型算法描述 */
 .algorithm-description-compact {
   width: 100%;
   text-align: left;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   color: #333;
   flex-shrink: 0;
-  background-color: rgba(240, 240, 240, 0.8);
-  border-radius: 4px;
-  padding: 3px 8px;
-  max-height: 80px;
+  background-color: rgba(240, 240, 240, 0.9);
+  border-radius: 3px;
+  padding: 2px 6px;
+  max-height: 60px;
   overflow-y: auto;
 }
 
@@ -360,7 +192,7 @@ h1 {
 
 .algorithm-description-compact h2 {
   margin: 0;
-  font-size: clamp(0.9rem, 1.6vh, 1.3rem);
+  font-size: 0.8rem;
   color: #1890ff;
   display: flex;
   align-items: center;
@@ -368,30 +200,52 @@ h1 {
 }
 
 .algorithm-description-compact .toggle-icon {
-  font-size: 0.7em;
+  font-size: 0.6em;
   color: #888;
-  margin-left: 10px;
+  margin-left: 8px;
 }
 
 .algorithm-description-compact .brief-description {
-  margin: 2px 0 0 0;
-  font-size: clamp(0.7rem, 1.1vh, 0.85rem);
+  margin: 1px 0 0 0;
+  font-size: 0.65rem;
   color: #666;
-  line-height: 1.3;
+  line-height: 1.2;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+.algorithm-description-compact .detailed-description {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.65rem;
+}
+
+.algorithm-description-compact .detailed-description p {
+  margin: 0 0 3px 0;
+}
+
+.algorithm-description-compact .detailed-description ol,
+.algorithm-description-compact .detailed-description ul {
+  margin: 3px 0;
+  line-height: 1.3;
+}
+
+.algorithm-description-compact .detailed-description li {
+  margin: 2px 0;
+}
+
+/* 语音切换按钮 */
 .speech-toggle-btn {
   background: rgba(66, 133, 244, 0.2);
   border: 1px solid rgba(66, 133, 244, 0.4);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: 3px;
+  padding: 1px 6px;
   cursor: pointer;
-  font-size: 1.2em;
+  font-size: 1em;
   transition: all 0.2s;
-  margin-left: 10px;
+  margin-left: 8px;
 }
 
 .speech-toggle-btn:hover {
@@ -400,32 +254,7 @@ h1 {
   transform: scale(1.1);
 }
 
-.speech-toggle-btn:active {
-  transform: scale(0.95);
-}
-
-.algorithm-description-compact .detailed-description {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: clamp(0.7rem, 1.1vh, 0.85rem);
-}
-
-.algorithm-description-compact .detailed-description p {
-  margin: 0 0 5px 0;
-}
-
-.algorithm-description-compact .detailed-description ol,
-.algorithm-description-compact .detailed-description ul {
-  margin: 5px 0;
-  line-height: 1.4;
-}
-
-.algorithm-description-compact .detailed-description li {
-  margin: 3px 0;
-}
-
-/* 修改tab样式以适应全屏 */
+/* Tab 控制 - 紧凑型 */
 .tab-control {
   width: 100%;
   height: 100%;
@@ -440,27 +269,28 @@ h1 {
   border-bottom: 1px solid #e0e0e0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
   overflow: visible !important;
   z-index: 4 !important;
+  background-color: #fafafa;
 }
 
 .tab-button {
   background: none !important;
   border: none !important;
-  padding: 0 10px !important;
+  padding: 0 8px !important;
   margin: 0 !important;
   color: #666 !important;
-  font-size: 0.6rem !important;
+  font-size: 0.65rem !important;
   cursor: pointer !important;
   transition: all 0.3s ease !important;
   position: relative !important;
   font-weight: 500 !important;
-  line-height: 16px !important;
-  height: 16px !important;
-  max-height: 16px !important;
+  line-height: 20px !important;
+  height: 20px !important;
+  max-height: 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -484,8 +314,6 @@ h1 {
   width: 100% !important;
   height: 2px !important;
   background-color: #4285f4 !important;
-  border-top-left-radius: 1px !important;
-  border-top-right-radius: 1px !important;
 }
 
 .tab-content {
@@ -493,6 +321,197 @@ h1 {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  padding-top: 1px !important;
+  padding-top: 0 !important;
   position: relative !important;
+}
+
+/* 输入控制 - 紧凑型 */
+.heights-input-control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.heights-input-control .input-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  gap: 4px;
+}
+
+.heights-input-control .input-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.heights-input-control .buttons-group {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
+.heights-input-control label {
+  flex: 0 0 auto;
+  font-weight: 500;
+  font-size: 0.65rem;
+  color: #333;
+  white-space: nowrap;
+}
+
+.heights-input-control input {
+  flex: 1;
+  min-width: 150px;
+  max-width: 400px;
+  padding: 2px 4px;
+  border: 1px solid #d9d9d9;
+  background-color: #ffffff;
+  color: #333;
+  border-radius: 2px;
+  font-size: 0.65rem;
+  height: 20px;
+}
+
+.heights-input-control input.error {
+  border-color: #ff5252;
+}
+
+.heights-input-control .error-message {
+  color: #ff5252;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.heights-input-control button {
+  padding: 1px 6px;
+  height: 20px;
+  background-color: #1890ff;
+  color: #ffffff;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.heights-input-control button:hover {
+  background-color: #40a9ff;
+}
+
+.heights-input-control .examples {
+  display: none;
+}
+
+/* D3 组件 */
+.d3-component {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 雨水容器 */
+.rain-water-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 柱子样式 */
+.bar-height {
+  stroke: #282c34;
+  stroke-width: 1px;
+}
+
+.bar-water {
+  stroke: #282c34;
+  stroke-width: 1px;
+}
+
+/* 动画相关 */
+.animated-rain-water-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 旧版算法描述 - 保留兼容 */
+.algorithm-description {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.2vh;
+  color: #333;
+  max-height: 15vh;
+  overflow-y: auto;
+  padding-right: 5px;
+  flex-shrink: 0;
+}
+
+.algorithm-description h2 {
+  margin: 0 0 0.1vh 0;
+  font-size: 0.8rem;
+  color: #1890ff;
+}
+
+.algorithm-description p {
+  margin: 0 0 0.1vh 0;
+  font-size: 0.6rem;
+  line-height: 1.2;
+}
+
+.algorithm-description ul {
+  margin: 0.1vh 0;
+  padding-left: 12px;
+}
+
+.algorithm-description li {
+  margin: 0.05vh 0;
+  font-size: 0.6rem;
+  line-height: 1.2;
+}
+
+/* 通用标题 */
+h1 {
+  margin: 0;
+  color: #1890ff;
+  font-size: 1rem;
+}
+
+/* 描述文字 */
+.description {
+  font-size: 0.65rem;
+  margin: 0;
+  color: #666;
+}
+
+/* Logo 动画 */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.App-link {
+  color: #61dafb;
 }

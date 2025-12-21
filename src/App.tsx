@@ -71,8 +71,9 @@ function App() {
   ];
 
   return (
-    <div className="App">
-      <div className="App-header">
+    <div className="App" data-testid="app-container">
+      {/* 紧凑型头部 */}
+      <div className="App-header" data-testid="app-header">
         <div className="header-flex">
           <h1>
             <a 
@@ -85,8 +86,15 @@ function App() {
             </a>
           </h1>
           <p className="description">
-            给定一个非负整数数组表示高度图，计算下雨后能够接住的雨水量。
+            计算下雨后能够接住的雨水量
           </p>
+          {/* 内联输入控制 */}
+          <div className="inline-controls">
+            <HeightsInputControl 
+              initialHeights={defaultHeights}
+              onUpdateHeights={setHeights}
+            />
+          </div>
           <a 
             href={GITHUB_REPO_URL}
             target="_blank"
@@ -100,15 +108,9 @@ function App() {
         </div>
       </div>
       
-      <div className="App-content">
-        <div className="control-panel">
-          <HeightsInputControl 
-            initialHeights={defaultHeights}
-            onUpdateHeights={setHeights}
-          />
-        </div>
-
-        <div className="visualization-panel">
+      {/* 主内容区域 - 画布优先 */}
+      <div className="App-content" data-testid="app-content">
+        <div className="visualization-panel" data-testid="canvas-area">
           <TabControl 
             tabs={algorithmTabs} 
             activeTab={activeTab} 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { CodeLineBinding, createCodeLineBinding } from '../../components/canvas/animation/types';
 
 export interface TwoPointersStep {
   heights: number[];
@@ -26,7 +27,36 @@ export interface TwoPointersStep {
     currentHeight: number;
     waterAmount: number;
   };
+  // 代码行绑定
+  codeLineBindings?: CodeLineBinding;
 }
+
+/**
+ * 双指针法代码行映射
+ * 基于 algorithmCodes.ts 中的代码结构
+ */
+const CODE_LINE_MAPPINGS = {
+  // 初始化变量
+  init: createCodeLineBinding([2, 3, 4], [2, 3, 4], [2, 3, 4], [2, 3, 4]),
+  // while 循环条件
+  whileCondition: createCodeLineBinding(6, 6, 6, 6),
+  // 比较 height[left] <= height[right]
+  compare: createCodeLineBinding(7, 7, 7, 7),
+  // 更新 leftMax
+  updateLeftMax: createCodeLineBinding([8, 9], [8, 9], [8, 9], [8, 9]),
+  // 计算左侧水量
+  calcLeftWater: createCodeLineBinding([10, 11], [10, 11], [10, 11], [10, 11]),
+  // left++
+  leftIncrement: createCodeLineBinding(13, 12, 13, 13),
+  // 更新 rightMax
+  updateRightMax: createCodeLineBinding([15, 16], [14, 15], [15, 16], [15, 16]),
+  // 计算右侧水量
+  calcRightWater: createCodeLineBinding([17, 18], [16, 17], [17, 18], [17, 18]),
+  // right--
+  rightDecrement: createCodeLineBinding(20, 18, 20, 20),
+  // 返回结果
+  returnResult: createCodeLineBinding(23, 21, 23, 23),
+};
 
 interface UseTwoPointersStepsProps {
   heights: number[];
@@ -65,7 +95,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       water: [...water],
       totalWater: 0,
       phase: 'init',
-      description: `初始化：左指针在位置${left}，右指针在位置${right}，leftMax=${leftMax}，rightMax=${rightMax}`
+      description: `初始化：左指针在位置${left}，右指针在位置${right}，leftMax=${leftMax}，rightMax=${rightMax}`,
+      codeLineBindings: CODE_LINE_MAPPINGS.init
     });
 
     while (left < right) {
@@ -94,7 +125,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
           reason: willMoveLeft 
             ? `左侧更矮(${leftHeight} ≤ ${rightHeight})，移动左指针。因为右侧更高，左侧的水量已确定，不会被右侧影响。`
             : `右侧更矮(${rightHeight} < ${leftHeight})，移动右指针。因为左侧更高，右侧的水量已确定，不会被左侧影响。`
-        }
+        },
+        codeLineBindings: CODE_LINE_MAPPINGS.compare
       });
       
       // 从左边向中间移动
@@ -124,7 +156,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
               maxValue: leftMax,
               currentHeight: heights[left],
               waterAmount: fill
-            }
+            },
+            codeLineBindings: CODE_LINE_MAPPINGS.calcLeftWater
           });
         } 
         // 如果当前高度大于等于leftMax，更新leftMax
@@ -141,7 +174,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             water: [...water],
             totalWater,
             phase: 'moveLeft',
-            description: `左指针移到位置${left}：height[${left}]=${heights[left]} ≥ 旧leftMax，更新leftMax=${leftMax}。这里不能装水，但更新了左侧的最大高度。`
+            description: `左指针移到位置${left}：height[${left}]=${heights[left]} ≥ 旧leftMax，更新leftMax=${leftMax}。这里不能装水，但更新了左侧的最大高度。`,
+            codeLineBindings: CODE_LINE_MAPPINGS.updateLeftMax
           });
         }
       } 
@@ -172,7 +206,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
               maxValue: rightMax,
               currentHeight: heights[right],
               waterAmount: fill
-            }
+            },
+            codeLineBindings: CODE_LINE_MAPPINGS.calcRightWater
           });
         } 
         // 如果当前高度大于等于rightMax，更新rightMax
@@ -189,7 +224,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
             water: [...water],
             totalWater,
             phase: 'moveRight',
-            description: `右指针移到位置${right}：height[${right}]=${heights[right]} ≥ 旧rightMax，更新rightMax=${rightMax}。这里不能装水，但更新了右侧的最大高度。`
+            description: `右指针移到位置${right}：height[${right}]=${heights[right]} ≥ 旧rightMax，更新rightMax=${rightMax}。这里不能装水，但更新了右侧的最大高度。`,
+            codeLineBindings: CODE_LINE_MAPPINGS.updateRightMax
           });
         }
       }
@@ -205,7 +241,8 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       water: [...water],
       totalWater,
       phase: 'complete',
-      description: `计算完成：左右指针相遇于位置${left}，总雨水量=${totalWater}单位`
+      description: `计算完成：左右指针相遇于位置${left}，总雨水量=${totalWater}单位`,
+      codeLineBindings: CODE_LINE_MAPPINGS.returnResult
     });
 
     setSteps(generatedSteps);
