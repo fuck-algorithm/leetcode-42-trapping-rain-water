@@ -28,6 +28,12 @@
     "start": "PORT=48046 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:unit": "react-scripts test --watchAll=false --runInBand",
+    "test:coverage": "react-scripts test --watchAll=false --runInBand --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -54,6 +60,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "fast-check": "^4.5.0"
   }
 }

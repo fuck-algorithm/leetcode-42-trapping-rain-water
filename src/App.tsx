@@ -74,6 +74,7 @@ function App() {
     <div className="App" data-testid="app-container">
       {/* 紧凑型头部 */}
       <div className="App-header" data-testid="app-header">
+        <a className="hot100-link" href="https://fuck-algorithm.github.io/leetcode-hot-100/" target="_blank" rel="noopener noreferrer">Hot 100</a>
         <div className="header-flex">
           <h1>
             <a 
@@ -88,13 +89,6 @@ function App() {
           <p className="description">
             计算下雨后能够接住的雨水量
           </p>
-          {/* 内联输入控制 */}
-          <div className="inline-controls">
-            <HeightsInputControl 
-              initialHeights={defaultHeights}
-              onUpdateHeights={setHeights}
-            />
-          </div>
           <a 
             href={GITHUB_REPO_URL}
             target="_blank"
@@ -108,6 +102,10 @@ function App() {
         </div>
       </div>
       
+      <div className="input-bar inline-controls">
+        <HeightsInputControl initialHeights={defaultHeights} onUpdateHeights={setHeights} />
+      </div>
+
       {/* 主内容区域 - 画布优先 */}
       <div className="App-content" data-testid="app-content">
         <div className="visualization-panel" data-testid="canvas-area">

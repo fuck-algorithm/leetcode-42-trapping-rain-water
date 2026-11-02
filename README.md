@@ -1,11 +1,5 @@
-# 42. 接雨水 - 算法可视化
+# 42. 接雨水
 
-LeetCode 第 42 题「接雨水」的多种解法可视化演示。
+通过交互式动画理解接雨水的多种算法及其执行过程。
 
-## 在线演示
-
-🔗 [GitHub Pages 在线演示](https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/)
-
-## 题目链接
-
-📝 [LeetCode 42. 接雨水](https://leetcode.cn/problems/trapping-rain-water/)
+线上演示：[GitHub Pages](https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/)

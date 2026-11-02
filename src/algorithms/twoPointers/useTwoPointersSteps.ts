@@ -12,6 +12,9 @@ export interface TwoPointersStep {
   currentFill?: number;
   phase: 'init' | 'compare' | 'moveLeft' | 'moveRight' | 'complete';
   description?: string; // 当前步骤的详细描述
+  operation?: 'init' | 'compare' | 'move' | 'insert' | 'done';
+  narration?: string;
+  anchorIds?: string[];
   // 决策逻辑
   decision?: {
     leftHeight: number;
@@ -73,9 +76,14 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
   // 生成所有动画步骤
   useEffect(() => {
     const n = heights.length;
-    if (n <= 2) {
+    if (n === 0) {
+      setSteps([]);
+      setCurrentStepIndex(0);
+      setProgress(0);
+      setIsPlaying(false);
       return;
     }
+    setIsPlaying(false);
 
     const generatedSteps: TwoPointersStep[] = [];
     let left = 0;
@@ -87,7 +95,7 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
 
     // 初始状态
     generatedSteps.push({
-      heights,
+      heights: [...heights],
       left,
       right,
       leftMax,
@@ -245,7 +253,18 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       codeLineBindings: CODE_LINE_MAPPINGS.returnResult
     });
 
-    setSteps(generatedSteps);
+    const annotatedSteps = generatedSteps.map((step, index) => {
+      const operation: TwoPointersStep['operation'] = step.phase === 'init' ? 'init' : step.phase === 'compare' ? 'compare' : step.phase === 'complete' ? 'done' : 'move';
+      const narration = step.description || `处理位置 ${Math.max(0, step.currentFill === undefined ? step.left : step.right)}，依据两端最高柱确定水位。`;
+      return {
+        ...step,
+        operation,
+        narration,
+        anchorIds: [`array-${Math.max(0, step.phase === 'moveRight' ? step.right : step.left)}`, `step-${index}`]
+      };
+    });
+
+    setSteps(annotatedSteps);
     setCurrentStepIndex(0);
     setProgress(0);
   }, [heights]);
@@ -322,6 +341,7 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
 
   return {
     currentStep: steps[currentStepIndex],
+    steps,
     currentStepIndex,
     totalSteps: steps.length,
     isPlaying,
