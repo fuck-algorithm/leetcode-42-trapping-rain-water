@@ -12,22 +12,21 @@
 | B4 AC-001~023 | FAIL | AC-019 覆盖率低；仅双指针视图加入四语言代码栏；其余解法、线上发布及 AC-023 的所有证据仍不足。 |
 | B5 P0/P1 缺陷 | 未确认 | 已完成人工视觉检查但未对每个解法做完整回归。 |
 | B6 Rubric ≥80 | FAIL | 估分 76/100。 |
-| B7 证据齐全 | FAIL | 已留存双指针首屏/reduced-motion/相邻步骤截图及 Playwright trace；尚缺 1x 连续播放录屏、完整其他解法证据、该轮线上发布证据。 |
+| B7 证据齐全 | FAIL | 已留存双指针首屏/reduced-motion/相邻步骤截图及 Playwright trace，并于生产构建回放核对；尚缺完整 1x 连续播放视频及其它解法证据。 |
 
 ## 验证证据
 
-- `npm run lint`：exit 0，33 条既有 warning。
-- `npm run type-check`：exit 0。
-- `CI=true npm run build`：exit 0。
 - `NODE_OPTIONS=--max-old-space-size=8192 npm run test:unit -- --silent`：23 suites / 211 tests 通过。
 - `npm run test:e2e`：15/15 通过；E2E-001 两档空间测量和 E2E-009 视口手势数据视图通过。
 - `npm run lint`：exit 0，33 条既存 warning。
 - `npm run type-check`：exit 0。
 - `CI=true npm run build`：exit 0。
-- `npm run test:coverage -- --silent`：23 suites / 211 tests 通过；All files lines 32.22%、branches 24.76%、functions 33.04%，低于 AC-019 阈值。
+- `npm run test:coverage -- --silent`：23 suites / 211 tests 通过；All files lines 32.22%、branches 24.7%、functions 33.04%，低于 AC-019 阈值。
 - 功能分支 Pages deploy 被 GitHub Pages 环境策略拒绝（非 main 分支）；PR #1 合并至 main 后 push workflow 成功部署。Actions run：41450935166。
-- 线上 `https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/` 返回 HTTP 200；页面题目 title 正确。线上关键冒烟 E2E-001/006：2/2 通过。
-- GitHub Pages URL 本次已更新并线上复验，但完整 B1-B7 结论仍为 FAIL，原因见上表。
+- Round 2 提交 `d7917aa5864ae2421e91dc42dad395b546ccee91` 对应 Actions run `41456669416`：全流程成功，build / unit+coverage / 15 E2E / Pages deploy 均通过。
+- 线上 `https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/` 返回 HTTP 200，last-modified 2026-11-02 13:54 UTC。
+- 同一 Actions production build 的本地 Chromium 验收：无 pageerror；reduced motion 已启用；1366×768 无滚动；三步 narration 按 init/compare/process 变化；1 current 焦点；build hash 与线上文件一致。
+- 本地 dev server 的 smoke test 没有用于最终版本结论；以 production build 和 CI 证据为准。B1-B7 整体仍 FAIL，原因见上表。
 
 ## Round 2 迭代结果
 
@@ -45,4 +44,4 @@
 2. 将 coverage 提高到 60/60/50，或走正式豁免审批；本轮变更后 lines 31.91%、functions 33.09%、branches 24.6%。
 3. 将四语言代码面板扩展至其它解法并验证每帧映射、语言偏好持久化和变量行旁注。
 4. 录制完整 1x 连续播放视频，补齐 3x 快速跳步/频繁切解法和画布重叠回归，所有解法分别做浏览器验收。
-5. 本轮仅本地变更尚未提交/部署；需将当前改动送审合并后，等待 main Actions 通过并线上复核。
+5. 本轮 Round 2 已合并 main 并部署；后续扩大到其余解法时仍需逐解法执行相同 AC-023/E2E 审核。
