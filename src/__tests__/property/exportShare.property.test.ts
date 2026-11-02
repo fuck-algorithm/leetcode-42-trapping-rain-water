@@ -218,14 +218,10 @@ describe('Export/Share Properties', () => {
       // 创建一个无效的 SVG 元素
       const invalidSvg = document.createElement('div') as unknown as SVGElement;
       
-      // 应该抛出错误或返回有效的 Blob
-      // 在 JSDOM 环境中，这个测试可能会失败，因为 Canvas API 不完整
-      try {
-        await exportManager.exportAsImage(invalidSvg);
-      } catch (error) {
-        // 预期会抛出错误
-        expect(error).toBeDefined();
-      }
+      // jsdom 无法可靠执行图像编码；验证 API 正确返回 Promise 即可。
+      const result = exportManager.exportAsImage(invalidSvg);
+      expect(result).toBeInstanceOf(Promise);
+      await expect(result).rejects.toBeDefined();
     });
 
     it('should have downloadBlob method', () => {
