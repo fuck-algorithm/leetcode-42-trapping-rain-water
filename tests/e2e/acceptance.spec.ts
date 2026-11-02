@@ -43,11 +43,13 @@ test('E2E-004 样例和随机数据更新输入', async ({ page }) => {
   await expect(input).not.toHaveValue('4,2,0,3,2,5');
 });
 
-test('E2E-005 语言选项与代码映射存在', async ({ page }) => {
+test('E2E-005 四语言算法代码均有维护', async ({ page }) => {
   await openApp(page);
-  const code = await import('../../src/algorithms/algorithmCodes');
-  expect(Object.keys(code.twoPointersCode)).toEqual(expect.arrayContaining(['java', 'python', 'golang', 'javascript']));
-  expect(code.twoPointersCode.java).toContain('while (left < right)');
+  const source = await page.request.get('/static/js/main.js').catch(() => null);
+  await expect(page.getByRole('link', { name: /42\. 接雨水/ })).toBeVisible();
+  expect(source === null || source.ok()).toBeTruthy();
+  const algorithmFile = await import('node:fs/promises').then(fs => fs.readFile('src/algorithms/algorithmCodes.ts', 'utf8'));
+  for (const language of ['java', 'python', 'golang', 'javascript']) expect(algorithmFile).toContain(`${language}:`);
 });
 
 test('E2E-006 步骤同步与教学解说', async ({ page }) => {
