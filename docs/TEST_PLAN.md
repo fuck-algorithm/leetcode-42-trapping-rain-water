@@ -1,7 +1,11 @@
-# 测试计划
+# 测试计划（迭代轮次 2）
 
-- 单元/属性测试：`npm run test:unit`，验证应用、通用画布属性、双指针快照以及动效时间 token。
-- 覆盖率：`npm run test:coverage`，记录 statements/branches/functions/lines；当前未达 60/50/60 门槛。
-- E2E：`npm run test:e2e:install` 后 `npm run test:e2e`，Chromium 覆盖 15 个关键路径。
-- 工程检查：`npm run lint`、`npm run type-check`、`CI=true npm run build`。
-- 当前环境首次全量 Jest 在默认 4GB heap 下出现 OOM，使用 `NODE_OPTIONS=--max-old-space-size=8192` 重跑通过。
+- 算法步骤与因果 narration：`src/algorithms/twoPointers/useTwoPointersSteps.test.tsx`
+- 代码面板行映射/变量 watch：`TwoPointersCodePanel.test.tsx`
+- SVG 教学徽标、解说、柱 hover：`TwoPointersVisualizer.test.tsx`
+- 可访问数据表/索引摘要：`RainwaterVisualChecks.test.tsx`
+- 全量单测：`NODE_OPTIONS=--max-old-space-size=8192 npm run test:unit -- --silent`
+- 覆盖率：`npm run test:coverage -- --silent`，目前全仓仍不达门槛。
+- E2E：`npm run test:e2e`，15 项覆盖双视口空间预算、步骤语义、平移/缩放、数据表读数。
+- 工程：`npm run lint`、`npm run type-check`、`CI=true npm run build`。
+- 动效证据：`docs/evidence/round-2/`。

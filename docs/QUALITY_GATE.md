@@ -1,6 +1,6 @@
 # 质量门禁
 
-本仓库当前基于 Create React App/Jest：
+本仓库现有命令：
 
 - `npm run lint`
 - `npm run type-check`
@@ -9,4 +9,4 @@
 - `npm run test:e2e`
 - `CI=true npm run build`
 
-覆盖率执行范围目前是 CRA 默认的 `src/`，总体覆盖低于技能标准；新增功能应优先提高算法步骤、输入校验与视觉状态映射覆盖率。部署使用 `.github/workflows/deploy.yml` 的 GitHub Pages Actions。
+现有 CRA 全项目 coverage 经本轮实测仍低于技能阈值；具体 lines/branches/functions 记录在验收报告。运行 `npm ci` 需本地/CI npm 配置 legacy peer deps（React Scripts 5 与 TS5 peer 范围冲突）。

@@ -1,29 +1,33 @@
-# 动画规格：LeetCode 42 接雨水
+# 动画规格：LeetCode 42 接雨水双指针法（Round 2）
 
-## 布局与可观察状态
+## 画布优先空间分配
 
-- 主结构：高度数组 `height[i]`，稳定 ID `bar-{i}`；蓄水层 `water-{i}`；辅助线 `left-max`、`right-max`；指针 `pointer-left`、`pointer-right`。
-- 逻辑坐标由当前 SVG 宽高与 `scaleBand(index)` / `scaleLinear(height)` 推导，跨帧保持索引 ID 和比例尺规则稳定，不随机重排。
-- 教学层包括操作徽标/步骤说明、总蓄水量与步数、固定图例（当前、比较、已处理、完成）。
+- 1366×768 实测：顶部/输入/页签/控制合计占 15.1%；SVG 532px（69.3%）；画布 1038px、代码列 328px，单屏无滚动。
+- 1920×1080 的 E2E-001 视口检查覆盖画布/绘图区比例门槛。
+- 工作区：主画布 + `clamp(320px,24vw,380px)` 代码侧栏；代码侧栏内语言、变量、折叠式辅助数据表。
 
-## 步骤规划
+## 可观察状态与稳定身份
 
-每个快照含 `operation`、`narration`、`anchorIds` 和绑定代码行。阶段映射：`init → init`、`compare → compare`、左右处理 → `move`、最终状态 → `done`。水量、指针及左右最大值均由预生成快照提供。
+- 主结构：高度柱 `bar-{index}`、蓄水块 `water-{index}`，固定索引轴与比例尺。
+- 指针：`pointer-left` / `pointer-right`；辅助水位线：`left-max` / `right-max`；所有图元按稳定 ID keyed join。
+- 每帧操作：初始化 `init`、两端比较 `compare`、水量加入 `fill`、最高墙更新 `update`、完成 `done`；每步提供因果说明和锚点 ID。
+- 固定状态图例：当前/比较/已处理/完成；焦点最多一个 current，compare 最多两个；完成帧全柱转 done。
+- 步骤预算：示例一 24 帧（初始化、比较/处理循环、完成），单步表达一次决策或一次处理。
 
-| 阶段 | 焦点 | 状态/变化 | 锚点 | 解说意图 |
-|---|---|---|---|---|
-| 初始化 | L/R 两端 | 初始端点 current | array-0 / step-0 | 记录边界，确定扫描范围 |
-| 比较 | L/R 两柱 | 两端 compare | 当前数组索引 | 比较两侧高度，决定安全处理侧 |
-| 移动与计算 | 单侧当前柱 | 左右指针向内、已处理区 visited | 当前数组索引 | 较矮端决定水位，累加水量或更新最大值 |
-| 完成 | 全数组 | 节点 done，汇总结果 | 完成锚点 | 汇总并展示总水量 |
+## 教学解说
 
-## 动效与无障碍
+解说模板为“动作 + 对象 + 因为/所以”。比较步骤解释较矮侧的水量确定性；填水步骤显示当前索引、高度、水量、累计量；更新最大墙时说明新柱高覆盖旧墙。
 
-- 时间 token 位于 `src/algorithms/twoPointers/motion.ts`：更新时长不超过播放停留时间的 45%；跳步中断同名过渡后从当前 DOM 状态更新。
-- D3 保留分层 `.layer-grid/.layer-water/.layer-bars/.layer-guides/.layer-pointers/.layer-labels`，柱、水、指针按稳定 ID keyed join；退场使用淡出 transition 后移除。
-- `prefers-reduced-motion: reduce` 下 JS 动效时长为 0，CSS transition/animation 关闭；快照、指标与解说保持更新。
-- 状态不仅依赖颜色：指针字母、图例文本、柱高与水层共同表达状态。
+## 动效
 
-## 验收记录
+- MOTION token 仍由 `src/algorithms/twoPointers/motion.ts` 提供，动画时长最多占播放停留 45%；reduced-motion 时长归零。
+- 状态类、数据标注和图例在 reduced-motion 下完整保留。
+- D3 按稳定 key 更新并在步骤跳转时 interrupt 命名过渡。
+- 视口支持指针拖拽平移与滚轮缩放；摄像机变换存放在 ref，步骤重画保留用户视口。
 
-目前仅确认构建及 motion 单测；Playwright 15 项、覆盖率、录屏/视口测量尚未建立或执行，详见 `ACCEPTANCE_REPORT_TEMPLATE.md`，不得据此判定整体 PASS。
+## 可访问性与辅助阅读
+
+- 四语言代码面板默认 Java、偏好持久化；代码行高亮跟随代码映射，显示关键变量旁注。
+- 柱形具备键盘焦点与 aria-label；hover/focus 显示索引、柱高与蓄水 tooltip。
+- 辅助表格提供全部位置的高度和水量，索引带作为可见摘要，不依赖颜色或 tooltip 才能读数。
+- 截图证据：`docs/evidence/round-2/initial-reduced-motion.png`、`compare-step.png`、`process-step.png`；1x 连续步骤 trace：`step-transition-trace.zip`。

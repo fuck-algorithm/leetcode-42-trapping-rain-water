@@ -24,12 +24,12 @@ function App() {
   // 状态
   const [heights, setHeights] = useState<number[]>(defaultHeights);
   const [activeTab, setActiveTab] = useState<string>("twoPointers");
-  const [speed, setSpeed] = useState<number>(500);
+  const [speed, setSpeed] = useState<number>(1000);
 
   // 从 IndexedDB 恢复播放速度
   useEffect(() => {
     const loadSpeed = async () => {
-      const savedSpeed = await getSetting<number>(SETTING_KEYS.PLAYBACK_SPEED, 500);
+      const savedSpeed = await getSetting<number>(SETTING_KEYS.PLAYBACK_SPEED, 1000);
       setSpeed(savedSpeed);
     };
     loadSpeed();

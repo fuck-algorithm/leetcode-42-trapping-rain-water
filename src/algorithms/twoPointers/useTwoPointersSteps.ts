@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CodeLineBinding, createCodeLineBinding } from '../../components/canvas/animation/types';
 
+export type TwoPointersOperation = 'init' | 'compare' | 'move' | 'fill' | 'update' | 'done';
+
 export interface TwoPointersStep {
   heights: number[];
   left: number;
@@ -12,7 +14,7 @@ export interface TwoPointersStep {
   currentFill?: number;
   phase: 'init' | 'compare' | 'moveLeft' | 'moveRight' | 'complete';
   description?: string; // 当前步骤的详细描述
-  operation?: 'init' | 'compare' | 'move' | 'insert' | 'done';
+  operation?: TwoPointersOperation;
   narration?: string;
   anchorIds?: string[];
   // 决策逻辑
@@ -60,6 +62,32 @@ const CODE_LINE_MAPPINGS = {
   // 返回结果
   returnResult: createCodeLineBinding(23, 21, 23, 23),
 };
+
+function buildNarration(step: TwoPointersStep, previous: string): string {
+  let sentence: string;
+  switch (step.phase) {
+    case 'init':
+      sentence = `初始化：指针从两端夹住数组，因为每个位置的水位由左右边界中较矮的一侧限制。`;
+      break;
+    case 'compare':
+      sentence = `比较位置 ${step.left} 的高度 ${step.decision?.leftHeight} 与位置 ${step.right} 的高度 ${step.decision?.rightHeight}，因为较矮边界一侧的水量已可确定。`;
+      break;
+    case 'moveLeft':
+      sentence = step.currentFill
+        ? `左指针处理位置 ${step.left} 并加入 ${step.currentFill} 单位水，因为左侧最高墙高于当前柱。`
+        : `左指针处理位置 ${step.left} 并更新左侧最高墙为 ${step.leftMax}，因为当前柱不低于旧边界。`;
+      break;
+    case 'moveRight':
+      sentence = step.currentFill
+        ? `右指针处理位置 ${step.right} 并加入 ${step.currentFill} 单位水，因为右侧最高墙高于当前柱。`
+        : `右指针处理位置 ${step.right} 并更新右侧最高墙为 ${step.rightMax}，因为当前柱不低于旧边界。`;
+      break;
+    default:
+      sentence = `两指针在位置 ${step.left} 相遇，最终累计 ${step.totalWater} 单位雨水，因为所有可处理位置均已确定。`;
+  }
+  if (sentence !== previous) return sentence;
+  return `${sentence} 当前累计水量为 ${step.totalWater} 单位。`;
+}
 
 interface UseTwoPointersStepsProps {
   heights: number[];
@@ -253,14 +281,16 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       codeLineBindings: CODE_LINE_MAPPINGS.returnResult
     });
 
+    let previousNarration = '';
     const annotatedSteps = generatedSteps.map((step, index) => {
-      const operation: TwoPointersStep['operation'] = step.phase === 'init' ? 'init' : step.phase === 'compare' ? 'compare' : step.phase === 'complete' ? 'done' : 'move';
-      const narration = step.description || `处理位置 ${Math.max(0, step.currentFill === undefined ? step.left : step.right)}，依据两端最高柱确定水位。`;
+      const operation: TwoPointersOperation = step.phase === 'init' ? 'init' : step.phase === 'compare' ? 'compare' : step.phase === 'complete' ? 'done' : step.currentFill ? 'fill' : step.phase === 'moveLeft' || step.phase === 'moveRight' ? 'move' : 'update';
+      const narration = buildNarration(step, previousNarration);
+      previousNarration = narration;
       return {
         ...step,
         operation,
         narration,
-        anchorIds: [`array-${Math.max(0, step.phase === 'moveRight' ? step.right : step.left)}`, `step-${index}`]
+        anchorIds: step.phase === 'init' ? ['pointer-left', 'pointer-right'] : step.phase === 'compare' ? [`bar-${step.left}`, `bar-${step.right}`] : [`bar-${step.phase === 'moveRight' ? step.right : step.left}`]
       };
     });
 
