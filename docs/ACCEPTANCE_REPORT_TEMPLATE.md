@@ -7,9 +7,9 @@
 | Gate | 状态 | 证据/原因 |
 |---|---|---|
 | B1 一票否决项 | FAIL | 双指针主视图使用 keyed join，但其它算法未进行完整 AC-023 审核。 |
-| B2 工程门禁 | FAIL | lint/type-check/build/unit 通过；coverage lines 28.1%、functions 24.62%、branches 20.63%，不足门槛。 |
-| B3 Playwright 15 项 | PASS (本地) | `npm run test:e2e`：15/15 通过；E2E-005 仅校验已有语言代码数据，不存在实际代码面板。 |
-| B4 AC-001~023 | FAIL | 代码面板、多解法统一动画、真实画布平移缩放及动画证据未完全验收。 |
+| B2 工程门禁 | PASS | main 分支 Actions 全流程 exit 0：依赖安装、type-check、lint、coverage、E2E、build、Pages upload/deploy 均通过。 |
+| B3 Playwright 15 项 | PASS | main 分支 CI `npm run test:e2e` 15/15 通过；E2E-005 仅校验已有语言代码数据，不存在实际代码面板。 |
+| B4 AC-001~023 | FAIL | AC-019 覆盖率低于门槛；代码面板、多解法统一动画、真实画布平移缩放及动画证据未完全验收。 |
 | B5 P0/P1 缺陷 | 未确认 | 未完成人工完整测试。 |
 | B6 Rubric ≥80 | FAIL | 估分 68/100。 |
 | B7 证据齐全 | FAIL | 尚未归档 1x 录屏、reduced-motion/相邻步骤截图、已发布线上截图。 |
@@ -22,7 +22,9 @@
 - `NODE_OPTIONS=--max-old-space-size=8192 npm run test:unit -- --silent`：20 suites / 208 tests 通过。
 - `npm run test:e2e`：15/15 通过。
 - `npm run test:coverage -- --silent`：20 suites / 208 tests 通过；All files lines 28.1%、branches 20.63%、functions 24.62%。
-- GitHub Actions dispatch 多次失败于依赖安装阶段，Actions 未运行到 build/deploy；需修复远端 npm peer-deps 配置后重试。
+- 功能分支 Pages deploy 被 GitHub Pages 环境策略拒绝（非 main 分支）；PR #1 合并至 main 后 push workflow 成功部署。Actions run：41450935166。
+- 线上 `https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/` 返回 HTTP 200；页面题目 title 正确。线上关键冒烟 E2E-001/006：2/2 通过。
+- GitHub Pages URL 本次已更新并线上复验，但完整 B1-B7 结论仍为 FAIL，原因见上表。
 
 ## 本轮实现
 
