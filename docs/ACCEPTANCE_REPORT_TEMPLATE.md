@@ -23,8 +23,9 @@
 - `CI=true npm run build`：exit 0。
 - `npm run test:coverage -- --silent`：23 suites / 211 tests 通过；All files lines 32.22%、branches 24.7%、functions 33.04%，低于 AC-019 阈值。
 - 功能分支 Pages deploy 被 GitHub Pages 环境策略拒绝（非 main 分支）；PR #1 合并至 main 后 push workflow 成功部署。Actions run：41450935166。
-- Round 2 提交 `d7917aa5864ae2421e91dc42dad395b546ccee91` 对应 Actions run `41456669416`：全流程成功，build / unit+coverage / 15 E2E / Pages deploy 均通过。
-- 线上 `https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/` 返回 HTTP 200，last-modified 2026-11-02 13:54 UTC。
+- Round 2 代码提交 `d7917aa5864ae2421e91dc42dad395b546ccee91` 对应 Actions run `41456669416`：全流程成功，build / unit+coverage / 15 E2E / Pages deploy 均通过。
+- 验收文档和截图更新提交 `22636382858398aee2a945e57bc41bfed335c3fc` 对应 Actions run `41457887494`：全流程再次成功并部署。
+- 线上 `https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/` 返回 HTTP 200，当前 last-modified 2026-11-02 14:02 UTC。
 - 同一 Actions production build 的本地 Chromium 验收：无 pageerror；reduced motion 已启用；1366×768 无滚动；三步 narration 按 init/compare/process 变化；1 current 焦点；build hash 与线上文件一致。
 - 本地 dev server 的 smoke test 没有用于最终版本结论；以 production build 和 CI 证据为准。B1-B7 整体仍 FAIL，原因见上表。
 
