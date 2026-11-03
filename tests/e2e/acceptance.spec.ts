@@ -48,13 +48,24 @@ test('E2E-004 样例和随机数据更新输入', async ({ page }) => {
   await expect(input).not.toHaveValue('4,2,0,3,2,5');
 });
 
-test('E2E-005 四语言算法代码均有维护', async ({ page }) => {
+test('E2E-005 四语言切换与偏好持久化', async ({ page }) => {
   await openApp(page);
-  const source = await page.request.get('/static/js/main.js').catch(() => null);
-  await expect(page.getByRole('link', { name: /42\. 接雨水/ })).toBeVisible();
-  expect(source === null || source.ok()).toBeTruthy();
-  const algorithmFile = await import('node:fs/promises').then(fs => fs.readFile('src/algorithms/algorithmCodes.ts', 'utf8'));
-  for (const language of ['java', 'python', 'golang', 'javascript']) expect(algorithmFile).toContain(`${language}:`);
+  const panel = page.getByRole('complementary', { name: '算法代码面板' });
+  await expect(panel.getByRole('region', { name: 'java 算法代码' })).toBeVisible();
+  for (const [label, region, snippet] of [
+    ['Python', 'python 算法代码', 'def trap(height'],
+    ['Go', 'golang 算法代码', 'func trap(height'],
+    ['JavaScript', 'javascript 算法代码', 'function trap(height'],
+    ['Java', 'java 算法代码', 'public int trap']
+  ]) {
+    await panel.getByRole('button', { name: label, exact: true }).click();
+    await expect(panel.getByRole('region', { name: region })).toBeVisible();
+    await expect(panel.getByText(snippet, { exact: false })).toBeVisible();
+  }
+  await panel.getByRole('button', { name: 'Python' }).click();
+  await expect(panel.getByRole('button', { name: 'Python' })).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(page.getByRole('complementary', { name: '算法代码面板' }).getByRole('button', { name: 'Python' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('E2E-006 步骤同步与教学解说', async ({ page }) => {
