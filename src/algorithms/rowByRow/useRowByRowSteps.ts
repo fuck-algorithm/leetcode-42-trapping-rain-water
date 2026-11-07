@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useAnimationPlayback } from '../shared/useAnimationPlayback';
 
 export interface RowByRowStep {
   heights: number[];
@@ -20,15 +21,13 @@ interface UseRowByRowStepsProps {
 
 export const useRowByRowSteps = ({ heights, speed = 500 }: UseRowByRowStepsProps) => {
   const [steps, setSteps] = useState<RowByRowStep[]>([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playback = useAnimationPlayback(steps, speed);
 
   // 生成所有动画步骤
   useEffect(() => {
     const n = heights.length;
-    if (n <= 2) {
+    if (n === 0) {
+      setSteps([]);
       return;
     }
 
@@ -150,93 +149,9 @@ export const useRowByRowSteps = ({ heights, speed = 500 }: UseRowByRowStepsProps
     });
 
     setSteps(generatedSteps);
-    setCurrentStepIndex(0);
-    setProgress(0);
   }, [heights]);
 
-  // 播放/暂停动画
-  const togglePlay = useCallback(() => {
-    setIsPlaying(prev => !prev);
-  }, []);
-
-  // 播放动画的效果
-  useEffect(() => {
-    if (isPlaying && steps.length > 0) {
-      intervalRef.current = setInterval(() => {
-        setCurrentStepIndex(prevIndex => {
-          const nextIndex = prevIndex + 1;
-          if (nextIndex >= steps.length) {
-            setIsPlaying(false);
-            return prevIndex;
-          }
-          setProgress((nextIndex / (steps.length - 1)) * 100);
-          return nextIndex;
-        });
-      }, speed);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isPlaying, steps.length, speed]);
-
-  // 前进到下一步
-  const nextStep = useCallback(() => {
-    setCurrentStepIndex(prevIndex => {
-      const nextIndex = Math.min(prevIndex + 1, steps.length - 1);
-      setProgress((nextIndex / (steps.length - 1)) * 100);
-      return nextIndex;
-    });
-  }, [steps.length]);
-
-  // 返回上一步
-  const prevStep = useCallback(() => {
-    setCurrentStepIndex(prevIndex => {
-      const nextIndex = Math.max(prevIndex - 1, 0);
-      setProgress((nextIndex / (steps.length - 1)) * 100);
-      return nextIndex;
-    });
-  }, [steps.length]);
-
-  // 跳转到指定步骤
-  const goToStep = useCallback((stepIndex: number) => {
-    const boundedIndex = Math.max(0, Math.min(stepIndex, steps.length - 1));
-    setCurrentStepIndex(boundedIndex);
-    setProgress((boundedIndex / (steps.length - 1)) * 100);
-  }, [steps.length]);
-
-  // 设置进度
-  const setProgressValue = useCallback((newProgress: number) => {
-    const normalizedProgress = Math.max(0, Math.min(newProgress, 100));
-    const newIndex = Math.round((normalizedProgress / 100) * (steps.length - 1));
-    setCurrentStepIndex(newIndex);
-    setProgress(normalizedProgress);
-  }, [steps.length]);
-
-  // 重置到初始状态
-  const reset = useCallback(() => {
-    setCurrentStepIndex(0);
-    setProgress(0);
-    setIsPlaying(false);
-  }, []);
-
-  return {
-    currentStep: steps[currentStepIndex],
-    currentStepIndex,
-    totalSteps: steps.length,
-    isPlaying,
-    progress,
-    togglePlay,
-    nextStep,
-    prevStep,
-    goToStep,
-    setProgress: setProgressValue,
-    reset
-  };
+  return playback;
 };
 
 export default useRowByRowSteps;

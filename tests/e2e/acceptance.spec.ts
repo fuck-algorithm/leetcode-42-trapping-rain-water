@@ -122,10 +122,20 @@ test('E2E-010 算法说明与语音控制', async ({ page }) => {
   await expect(page.getByRole('button', { name: '切换语音解说' })).toContainText('关闭语音');
 });
 
-test('E2E-011 多算法标签切换', async ({ page }) => {
+test('E2E-011 多算法标签切换并保留教学层', async ({ page }) => {
   await openApp(page);
-  await page.getByTestId('tab-button-precomputation').click();
-  await expect(page.getByTestId('tab-button-precomputation')).toHaveClass(/active/);
+  for (const [tab, heading] of [
+    ['precomputation', '更新左侧最大值'],
+    ['monotonicStack', '入栈当前柱'],
+    ['rowByRow', '准备分层扫描'],
+    ['bruteForce', '选择当前位置'],
+  ]) {
+    await page.getByTestId(`tab-button-${tab}`).click();
+    await expect(page.getByTestId(`tab-button-${tab}`)).toHaveClass(/active/);
+    await expect(page.locator('.algorithm-teaching-layer')).toBeVisible();
+    await expect(page.locator('.algorithm-step-heading')).toContainText(heading);
+    await expect(page.locator('.algorithm-step-narration')).not.toBeEmpty();
+  }
   await page.getByTestId('tab-button-twoPointers').click();
   await expect(page.locator('.layer-bars .bar')).toHaveCount(12);
 });

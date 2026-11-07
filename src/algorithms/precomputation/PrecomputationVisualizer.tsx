@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import usePrecomputationSteps from './usePrecomputationSteps';
+import usePrecomputationSteps, { AnimationStep } from './usePrecomputationSteps';
 import AnimationControls from '../../components/common/AnimationControls';
+import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
+import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { motionDuration } from '../twoPointers/motion';
+import '../shared/rainwater.css';
 
 interface PrecomputationVisualizerProps {
   heights: number[];
@@ -65,8 +69,9 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
 
   useEffect(() => {
     if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
-      // Clear any existing SVG content
-      d3.select(d3Container.current).selectAll('*').remove();
+      const svgNode = d3Container.current;
+      const svgElement = d3.select(svgNode);
+      removeTransientSvgContent(svgElement);
       
       // 设置尺寸，减小边距
       const controlsHeight = 50; // AnimationControls的高度
@@ -85,11 +90,12 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       );
       
       // Create the SVG container
-      const svg = d3.select(d3Container.current)
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
+      const svg = svgElement
         .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+        .attr('height', height + margin.top + margin.bottom);
+      const plotTransform = `translate(${margin.left},${margin.top})`;
+      const plot = svg.append('g').attr('transform', plotTransform);
       
       // 自适应单元宽度，根据数组长度动态计算
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
@@ -115,7 +121,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       }
       
       // Add X axis
-      svg.append('g')
+      plot.append('g')
         .attr('transform', `translate(0,${height})`)
         .call(xAxis)
         .append('text')
@@ -127,7 +133,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .text('位置');
       
       // Add Y axis
-      svg.append('g')
+      plot.append('g')
         .call(d3.axisLeft(yScale).ticks(5))
         .append('text')
         .attr('transform', 'rotate(-90)')
@@ -138,46 +144,26 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .style('font-size', '0.7em')
         .text('高度');
       
-      // Draw height bars - 黑色柱子
-      svg.selectAll('.bar-height')
-        .data(heights)
-        .enter()
-        .append('rect')
-        .attr('class', 'bar-height')
-        .attr('x', (_, i) => xScale(i.toString())!)
-        .attr('y', d => yScale(d))
-        .attr('width', xScale.bandwidth())
-        .attr('height', d => height - yScale(d))
-        .attr('fill', '#1a1a1a') // 统一黑色柱子
-        .attr('stroke', (_, i) => {
-          // 根据当前阶段和索引高亮显示当前处理的位置
-          if (i === currentIndex) {
-            if (phase === 'leftScan') return '#ff7043';
-            if (phase === 'rightScan') return '#4caf50';
-            if (phase === 'waterCalculation') return '#fdd835';
-          }
-          return '#333';
-        })
-        .attr('stroke-width', (_, i) => {
-          if (i === currentIndex) return 3;
-          return 1;
-        });
+      const terrainLayer = getPersistentTerrainLayer(svgElement, 'precomputation', plotTransform);
+      const columns: HeightColumn[] = heights.map((value, index) => ({
+        id: `column-${index}`, index, value, x: xScale(index.toString())!, y: yScale(value),
+        width: xScale.bandwidth(), height: height - yScale(value),
+        stroke: index === currentIndex
+          ? phase === 'leftScan' ? '#ff7043' : phase === 'rightScan' ? '#4caf50' : phase === 'waterCalculation' ? '#fdd835' : '#ff7043'
+          : '#333',
+        strokeWidth: index === currentIndex ? 3 : 1
+      }));
+      renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotion), reducedMotion);
       
-      // Draw water bars - 蓝色填充
-      svg.selectAll('.bar-water')
-        .data(water)
-        .enter()
-        .append('rect')
-        .attr('class', 'bar-water')
-        .attr('x', (_, i) => xScale(i.toString())!)
-        .attr('y', (d, i) => yScale(heights[i] + (d || 0)))
-        .attr('width', xScale.bandwidth())
-        .attr('height', d => d > 0 ? height - yScale(d) : 0)
-        .attr('fill', (_, i) => {
-          return i === currentIndex && phase === 'waterCalculation' 
-            ? '#7EC8E3' // 高亮当前计算的水
-            : '#5B9BD5'; // 统一蓝色
-        });
+      // Reuse the same reflective water surface across algorithm views.
+      const waterLayer = getPersistentWaterLayer(svgElement, 'precomputation', plotTransform);
+      renderWaterCells(waterLayer, water.map((amount, index) => ({
+        id: `water-${index}`, x: xScale(index.toString())! - xScale.step() * xScale.paddingInner() / 2,
+        y: yScale(heights[index] + (amount || 0)), width: xScale.step(),
+        height: Math.max(0, yScale(heights[index]) - yScale(heights[index] + (amount || 0))),
+        highlighted: index === currentIndex && phase === 'waterCalculation',
+        surface: true
+      })), motionDuration(speed, reducedMotion), `precomputation:${heights.join(',')}`, reducedMotion);
       
       // Draw left max line (只在数组长度适中时绘制)
       if (heights.length <= 30) {
@@ -185,7 +171,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
         .y(d => yScale(d));
       
-      svg.append('path')
+      plot.append('path')
         .datum(leftMax)
         .attr('fill', 'none')
         .attr('stroke', '#ff7043')
@@ -198,7 +184,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
         .y(d => yScale(d));
       
-      svg.append('path')
+      plot.append('path')
         .datum(rightMax)
         .attr('fill', 'none')
         .attr('stroke', '#4caf50')
@@ -208,7 +194,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       }
       
       // 简化图例，保持必要信息
-      const legend = svg.append('g')
+      const legend = plot.append('g')
         .attr('transform', `translate(${width - 80}, 5)`);
       
       // 图例背景
@@ -254,7 +240,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .text('雨水');
       
       // Add water amount
-      svg.append('text')
+      plot.append('text')
         .attr('x', width / 2)
         .attr('y', 0)
         .attr('text-anchor', 'middle')
@@ -271,7 +257,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         case 'complete': phaseText = '计算完成'; break;
       }
       
-      svg.append('text')
+      plot.append('text')
         .attr('x', width / 2)
         .attr('y', height + margin.bottom - 5)
         .attr('text-anchor', 'middle')
@@ -279,7 +265,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         .style('font-size', '0.7em')
         .text(phaseText);
     }
-  }, [heights, currentStep, dimensions]);
+  }, [heights, currentStep, dimensions, speed]);
 
   // 处理速度变化
   const handleSpeedChange = (newSpeed: number) => {
@@ -326,7 +312,8 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
           </div>
         )}
       </div>
-      <div className="visualization-wrapper">
+      <div className="visualization-wrapper shared-algorithm-workspace">
+        {currentStep && <VisualizationTeachingLayer operation={precomputationOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '扫描数组并根据左右边界最大值确定蓄水量。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '索引', value: currentStep.currentIndex }, { label: '阶段', value: currentStep.phase === 'leftScan' ? '左扫' : currentStep.phase === 'rightScan' ? '右扫' : '求水' }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
@@ -348,5 +335,9 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
     </div>
   );
 };
+
+function precomputationOperation(phase: AnimationStep['phase']): string {
+  return ({ leftScan: '更新左侧最大值', rightScan: '更新右侧最大值', waterCalculation: '按边界计算水量', complete: '完成' } as Record<AnimationStep['phase'], string>)[phase];
+}
 
 export default PrecomputationVisualizer; 

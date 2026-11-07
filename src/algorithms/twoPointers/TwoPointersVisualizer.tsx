@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import useTwoPointersSteps from './useTwoPointersSteps';
+import { renderWaterCells } from '../shared/rainwater';
+import '../shared/rainwater.css';
 import AnimationControls from '../../components/common/AnimationControls';
 import TwoPointersCodePanel from './TwoPointersCodePanel';
 import RainwaterVisualChecks from './RainwaterVisualChecks';
@@ -22,9 +24,10 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cameraRef = useRef({ x: 0, y: 0, scale: 1 });
+  const rippleStepRef = useRef<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [hoveredBar, setHoveredBar] = useState<{ index: number; height: number; water: number } | null>(null);
   const { currentStep, currentStepIndex, totalSteps, isPlaying, progress, togglePlay, nextStep, prevStep, setProgress, reset } = useTwoPointersSteps({ heights, speed });
@@ -33,7 +36,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
     const observer = new ResizeObserver(([entry]) => setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height }));
     if (chartRef.current) observer.observe(chartRef.current);
     const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    const updateMotion = () => setReducedMotion(media?.matches ?? false);
+    const updateMotion = () => setReducedMotion(media?.matches ?? true);
     updateMotion();
     media?.addEventListener?.('change', updateMotion);
     return () => { observer.disconnect(); media?.removeEventListener?.('change', updateMotion); };
@@ -58,6 +61,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       plot = root.append('g').attr('class', 'plot').attr('transform', `translate(${margin.left},${margin.top})`);
       plot.append('g').attr('class', 'layer-grid');
       plot.append('g').attr('class', 'layer-water');
+      plot.append('g').attr('class', 'layer-water-ripples');
       plot.append('g').attr('class', 'layer-bars');
       plot.append('g').attr('class', 'layer-guides');
       plot.append('g').attr('class', 'layer-arrows');
@@ -85,12 +89,33 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       .interrupt('exit').transition('update').duration(transitionMs)
       .attr('x', d => (x(d.index) ?? 0) + (x.bandwidth() > 24 ? (x.bandwidth() - 24) / 2 : 1)).attr('y', d => y(d.value)).attr('width', Math.min(24, Math.max(4, x.bandwidth() - 2))).attr('height', d => heightInner - y(d.value)).attr('opacity', 1);
 
-    const waterData = heights.map((_, index) => ({ id: `water-${index}`, index, amount: water[index] || 0 }));
-    const waterBars = plot.select('.layer-water').selectAll<SVGRectElement, typeof waterData[number]>('rect.water').data(waterData, d => d.id);
-    waterBars.exit().interrupt().transition('exit').duration(transitionMs).attr('opacity', 0).remove();
-    waterBars.enter().append('rect').attr('class', 'water').attr('data-node-id', d => d.id).attr('opacity', 0)
-      .merge(waterBars).interrupt('exit').transition('update').duration(transitionMs).attr('x', d => x(d.index) ?? 0)
-      .attr('y', d => y(heights[d.index] + d.amount)).attr('width', Math.min(24, Math.max(4, x.bandwidth() - 2))).attr('height', d => Math.max(0, y(heights[d.index]) - y(heights[d.index] + d.amount))).attr('opacity', d => d.amount ? 0.88 : 0);
+    const waterData = heights.map((_, index) => ({
+      id: `water-${index}`,
+      x: (x(index) ?? 0) + (x.bandwidth() - x.step()) / 2,
+      y: y(heights[index] + (water[index] || 0)),
+      width: x.step() + 0.5,
+      height: Math.max(0, y(heights[index]) - y(heights[index] + (water[index] || 0))),
+      highlighted: (index === left && phase === 'moveLeft') || (index === right && phase === 'moveRight'),
+      surface: true
+    }));
+    const waterGroup = plot.select<SVGGElement>('.layer-water');
+    renderWaterCells(waterGroup, waterData, transitionMs, `twoPointers:${heights.join(',')}`, reducedMotion);
+    plot.select('.layer-water-ripples').raise();
+    const rippleKey = `${currentStepIndex}:${currentStep.operation}:${currentStep.currentFill || 0}`;
+    const shouldRipple = !reducedMotion && Boolean(currentStep.currentFill) && rippleStepRef.current !== rippleKey;
+    if (shouldRipple) rippleStepRef.current = rippleKey;
+    const ripples = shouldRipple ? waterData.filter(cell => cell.highlighted && cell.height > 0).map(cell => ({ ...cell, id: `ripple-${cell.id}` })) : [];
+    const rippleJoin = plot.select('.layer-water-ripples').selectAll<SVGPathElement, typeof ripples[number]>('path.water-ripple').data(ripples, cell => cell.id);
+    rippleJoin.exit().interrupt().attr('opacity', 0).remove();
+    rippleJoin.enter().append('path').attr('class', 'water-ripple').attr('opacity', 0)
+      .merge(rippleJoin).interrupt().attr('d', cell => {
+        const width = cell.width;
+        return `M${cell.x},${cell.y + 2} Q${cell.x + width * 0.25},${cell.y - 4} ${cell.x + width * 0.5},${cell.y + 1} T${cell.x + width},${cell.y + 1}`;
+      }).attr('opacity', 1).transition('ripple').duration(Math.max(360, transitionMs * 2))
+      .attrTween('d', cell => {
+        const width = cell.width;
+        return (time: number) => `M${cell.x},${cell.y + 2 - time * 5} Q${cell.x + width * 0.25},${cell.y - 4 - time * 5} ${cell.x + width * 0.5},${cell.y + 1 - time * 5} T${cell.x + width},${cell.y + 1 - time * 5}`;
+      }).attr('opacity', 0).remove();
 
     const guideData = [{ id: 'left-max', value: leftMax, start: 0, end: x(left) ?? 0, labelX: x(left) ?? 0, color: COLORS.current, label: `leftMax ${leftMax}` }, { id: 'right-max', value: rightMax, start: widthInner, end: (x(right) ?? widthInner) + x.bandwidth(), labelX: (x(right) ?? widthInner) + x.bandwidth(), color: COLORS.done, label: `rightMax ${rightMax}` }];
     const guides = plot.select('.layer-guides').selectAll<SVGLineElement, typeof guideData[number]>('line.guide').data(guideData, d => d.id);
