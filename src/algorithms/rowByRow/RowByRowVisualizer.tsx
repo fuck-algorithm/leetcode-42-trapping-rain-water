@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import useRowByRowSteps from './useRowByRowSteps';
+import useRowByRowSteps, { RowByRowStep } from './useRowByRowSteps';
 import AnimationControls from '../../components/common/AnimationControls';
+import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
+import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { motionDuration } from '../twoPointers/motion';
+import '../shared/rainwater.css';
 import './RowByRowVisualizer.css';
 
 interface RowByRowVisualizerProps {
@@ -67,55 +71,17 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
       
       const { currentRow, currentCol, waterMatrix, totalWater, phase, tempSum, rowWater } = currentStep;
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
       const maxHeight = Math.max(...heights);
       
       const svgElement = d3.select(d3Container.current);
-      svgElement.selectAll('*').remove();
+      removeTransientSvgContent(svgElement);
       
       const svg = svgElement
         .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
-      
-      // 定义渐变
-      const defs = svg.append('defs');
-      
-      // 水的蓝色填充（类似图片效果）
-      const waterGradient = defs.append('linearGradient')
-        .attr('id', 'rowWaterGradient')
-        .attr('x1', '0%')
-        .attr('y1', '0%')
-        .attr('x2', '0%')
-        .attr('y2', '100%');
-      
-      waterGradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', '#5B9BD5')
-        .attr('stop-opacity', 1);
-      
-      waterGradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', '#5B9BD5')
-        .attr('stop-opacity', 1);
-
-      // 当前行高亮水渐变
-      const currentRowWaterGradient = defs.append('linearGradient')
-        .attr('id', 'currentRowWaterGradient')
-        .attr('x1', '0%')
-        .attr('y1', '0%')
-        .attr('x2', '0%')
-        .attr('y2', '100%');
-      
-      currentRowWaterGradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', '#7EC8E3')
-        .attr('stop-opacity', 1);
-      
-      currentRowWaterGradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', '#7EC8E3')
-        .attr('stop-opacity', 1);
+        .attr('height', height + margin.top + margin.bottom);
+      const plotTransform = `translate(${margin.left},${margin.top})`;
+      const plot = svg.append('g').attr('transform', plotTransform);
       
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
       
@@ -130,7 +96,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         .range([height, 0]);
       
       // Y轴
-      svg.append('g')
+      plot.append('g')
         .call(d3.axisLeft(yScale).ticks(maxHeight))
         .append('text')
         .attr('transform', 'rotate(-90)')
@@ -143,7 +109,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       // 绘制当前行的水平线（高亮当前处理的层级）
       if (currentRow > 0 && phase !== 'complete') {
-        svg.append('line')
+        plot.append('line')
           .attr('x1', 0)
           .attr('x2', width)
           .attr('y1', yScale(currentRow))
@@ -153,7 +119,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           .attr('stroke-dasharray', '5,5')
           .style('opacity', 0.8);
         
-        svg.append('text')
+        plot.append('text')
           .attr('x', width + 5)
           .attr('y', yScale(currentRow) + 4)
           .attr('fill', '#FF9800')
@@ -162,6 +128,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           .text(`第${currentRow}层`);
       }
       
+      const waterCells: { id: string; x: number; y: number; width: number; height: number; highlighted: boolean; surface: boolean; pending: boolean }[] = [];
       // 绘制柱子（按单元格绘制，便于显示水）
       for (let col = 0; col < heights.length; col++) {
         const barX = xScale(col.toString())!;
@@ -172,45 +139,43 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           const cellY = yScale(row);
           const cellHeight = yScale(row - 1) - yScale(row);
           
-          if (row <= heights[col]) {
-            // 这是柱子的一部分 - 黑色柱子
-            svg.append('rect')
-              .attr('x', barX)
-              .attr('y', cellY)
-              .attr('width', barWidth)
-              .attr('height', cellHeight)
-              .attr('fill', '#1a1a1a') // 统一黑色柱子
-              .attr('stroke', col === currentCol && row === currentRow ? '#ff7043' : '#333')
-              .attr('stroke-width', col === currentCol && row === currentRow ? 2 : 0.5);
-          } else if (waterMatrix[row - 1] && waterMatrix[row - 1][col] === 1) {
-            // 这是水 - 蓝色填充
-            const isCurrentRow = row === currentRow;
-            svg.append('rect')
-              .attr('x', barX)
-              .attr('y', cellY)
-              .attr('width', barWidth)
-              .attr('height', cellHeight)
-              .attr('fill', isCurrentRow ? 'url(#currentRowWaterGradient)' : 'url(#rowWaterGradient)')
-              .attr('stroke', isCurrentRow ? '#5B9BD5' : '#4A8BC2')
-              .attr('stroke-width', 0.5);
+          if (row > heights[col] && waterMatrix[row - 1] && waterMatrix[row - 1][col] === 1) {
+            waterCells.push({
+              id: `water-${col}-${row}`, x: barX, y: cellY, width: barWidth, height: cellHeight,
+              highlighted: row === currentRow && col === currentCol,
+              surface: !waterMatrix[row] || waterMatrix[row][col] !== 1,
+              pending: phase !== 'complete' && (!waterMatrix[row] || waterMatrix[row][col] !== 1)
+            });
           }
         }
         
         // 当前列指示器
         if (col === currentCol && phase === 'scanRow') {
-          svg.append('polygon')
+          plot.append('polygon')
             .attr('points', `${barX + barWidth / 2 - 6},${height + 15} ${barX + barWidth / 2 + 6},${height + 15} ${barX + barWidth / 2},${height + 5}`)
             .attr('fill', '#ff7043');
         }
       }
-      
+      const reducedMotionForColumns = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
+      const terrainLayer = getPersistentTerrainLayer(svgElement, 'row-by-row', plotTransform);
+      const columns: HeightColumn[] = heights.map((value, index) => ({
+        id: `column-${index}`, index, value, x: xScale(index.toString())!, y: height,
+        width: xScale.bandwidth(), height: height - yScale(value), stroke: '#333', strokeWidth: 0.5
+      }));
+      renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotionForColumns), reducedMotionForColumns);
+      terrainLayer.raise();
+      const waterLayer = getPersistentWaterLayer(svgElement, 'row-by-row', plotTransform);
+      const pendingDuration = reducedMotion ? 0 : Math.max(80, motionDuration(speed, false) * 0.7);
+      const visibleWater = phase === 'complete' ? waterCells.map(cell => ({ ...cell, pending: false })) : waterCells;
+      renderWaterCells(waterLayer, visibleWater, pendingDuration, `rowByRow:${heights.join(',')}`, reducedMotion);
+
       // 索引标签
       if (heights.length <= 30) {
         heights.forEach((_, i) => {
           const barX = xScale(i.toString())!;
           const barWidth = xScale.bandwidth();
           
-          svg.append('circle')
+          plot.append('circle')
             .attr('cx', barX + barWidth / 2)
             .attr('cy', height + 25)
             .attr('r', 10)
@@ -218,7 +183,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
             .attr('stroke', '#fff')
             .attr('stroke-width', 1);
           
-          svg.append('text')
+          plot.append('text')
             .attr('x', barX + barWidth / 2)
             .attr('y', height + 29)
             .attr('text-anchor', 'middle')
@@ -230,7 +195,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       }
       
       // 图例
-      const legend = svg.append('g')
+      const legend = plot.append('g')
         .attr('transform', `translate(${width - 100}, 10)`);
       
       // 图例背景
@@ -270,7 +235,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       });
       
       // 顶部状态面板
-      const statePanel = svg.append('g')
+      const statePanel = plot.append('g')
         .attr('class', 'state-panel')
         .attr('transform', `translate(0, -65)`);
       
@@ -323,7 +288,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           .text(v.value);
       });
     }
-  }, [heights, currentStep, dimensions, currentStepIndex, totalSteps]);
+  }, [heights, currentStep, dimensions, currentStepIndex, totalSteps, speed]);
 
   const handleSpeedChange = (newSpeed: number) => {
     onSpeedChange(newSpeed);
@@ -375,7 +340,8 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
           </div>
         )}
       </div>
-      <div className="visualization-wrapper">
+      <div className="visualization-wrapper shared-algorithm-workspace">
+        {currentStep && <VisualizationTeachingLayer operation={rowOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '当前层', value: currentStep.currentRow }, { label: '临时水量', value: currentStep.tempSum }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
@@ -397,5 +363,9 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
     </div>
   );
 };
+
+function rowOperation(phase: RowByRowStep['phase']): string {
+  return ({ init: '准备分层扫描', scanRow: '扫描当前层', rowComplete: '确认本层积水', complete: '完成' } as Record<RowByRowStep['phase'], string>)[phase];
+}
 
 export default RowByRowVisualizer;

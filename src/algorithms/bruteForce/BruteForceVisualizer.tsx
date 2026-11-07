@@ -3,6 +3,10 @@ import * as d3 from 'd3';
 import AnimationControls from '../../components/common/AnimationControls';
 import { BruteForceVisualizerProps } from './types';
 import useBruteForceSteps from './useBruteForceSteps';
+import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
+import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { motionDuration } from '../twoPointers/motion';
+import '../shared/rainwater.css';
 import './BruteForceVisualizer.css';
 
 /**
@@ -72,37 +76,15 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
 
     const { position, leftMax, rightMax, waterLevel, totalWater, phase, scanIndex } = currentStep;
     const maxHeight = Math.max(...heights, 1);
-
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
 
     const svgElement = d3.select(d3Container.current);
-    svgElement.selectAll('*').remove();
-
+    removeTransientSvgContent(svgElement);
     const svg = svgElement
       .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // 定义渐变
-    const defs = svg.append('defs');
-    
-    // 水的蓝色填充（类似图片效果）
-    const waterGradient = defs.append('linearGradient')
-      .attr('id', 'bruteWaterGradient')
-      .attr('x1', '0%')
-      .attr('y1', '0%')
-      .attr('x2', '0%')
-      .attr('y2', '100%');
-    
-    waterGradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', '#5B9BD5')
-      .attr('stop-opacity', 1);
-    
-    waterGradient.append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', '#5B9BD5')
-      .attr('stop-opacity', 1);
+      .attr('height', height + margin.top + margin.bottom);
+    const plotTransform = `translate(${margin.left},${margin.top})`;
+    const plot = svg.append('g').attr('transform', plotTransform);
 
     const barPadding = heights.length > 20 ? 0.05 : 0.1;
 
@@ -117,7 +99,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .range([height, 0]);
 
     // Y轴
-    svg.append('g')
+    plot.append('g')
       .call(d3.axisLeft(yScale).ticks(5))
       .append('text')
       .attr('transform', 'rotate(-90)')
@@ -129,48 +111,32 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .text('高度');
 
     // 绘制柱子 - 黑色柱子
-    svg.selectAll('.bar-height')
-      .data(heights)
-      .enter()
-      .append('rect')
-      .attr('class', 'bar-height')
-      .attr('x', (_, i) => xScale(i.toString())!)
-      .attr('y', d => yScale(d))
-      .attr('width', xScale.bandwidth())
-      .attr('height', d => height - yScale(d))
-      .attr('fill', '#1a1a1a') // 统一黑色柱子
-      .attr('stroke', (_, i) => {
-        if (i === position) return '#ff7043'; // 当前处理的位置
-        if (scanIndex !== undefined && i === scanIndex) return '#FFC107'; // 扫描位置
-        return '#333';
-      })
-      .attr('stroke-width', (_, i) => {
-        if (i === position || (scanIndex !== undefined && i === scanIndex)) return 3;
-        return 1;
-      });
+    const terrainLayer = getPersistentTerrainLayer(svgElement, 'brute-force', plotTransform);
+    const columns: HeightColumn[] = heights.map((value, index) => ({
+      id: `column-${index}`, index, value, x: xScale(index.toString())!, y: yScale(value),
+      width: xScale.bandwidth(), height: height - yScale(value),
+      stroke: index === position ? '#ff7043' : scanIndex === index ? '#FFC107' : '#333',
+      strokeWidth: index === position || scanIndex === index ? 3 : 1
+    }));
+    renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotion), reducedMotion);
 
-    // 绘制已计算的水
-    if (waterLevel) {
-      Object.entries(waterLevel).forEach(([idx, level]) => {
-        const i = parseInt(idx);
-        if (level > 0) {
-          svg.append('rect')
-            .attr('class', 'bar-water')
-            .attr('x', xScale(i.toString())!)
-            .attr('y', yScale(heights[i] + level))
-            .attr('width', xScale.bandwidth())
-            .attr('height', height - yScale(level))
-            .attr('fill', 'url(#bruteWaterGradient)');
-        }
-      });
-    }
+    // Render calculated water with the same translucent surface treatment.
+    const waterLayer = getPersistentWaterLayer(svgElement, 'brute-force', plotTransform);
+    renderWaterCells(waterLayer, waterLevel ? Object.entries(waterLevel).map(([idx, level]) => {
+      const index = Number(idx);
+      return {
+        id: `water-${index}`, x: xScale(index.toString())! - xScale.step() * xScale.paddingInner() / 2, y: yScale(heights[index] + level),
+        width: xScale.step(), height: Math.max(0, yScale(heights[index]) - yScale(heights[index] + level)),
+        highlighted: index === position, surface: true
+      };
+    }) : [], motionDuration(speed, reducedMotion), `bruteForce:${heights.join(',')}`, reducedMotion);
 
 
     // 绘制左侧最大高度线
     if (leftMax > 0 && position >= 0 && (phase === 'scanLeftComplete' || 
         phase === 'scanRightComplete' || phase === 'compare' || phase === 'waterFound')) {
       const leftLineX = xScale(position.toString())!;
-      svg.append('line')
+      plot.append('line')
         .attr('x1', 0)
         .attr('x2', leftLineX)
         .attr('y1', yScale(leftMax))
@@ -179,7 +145,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', '5,5');
       
-      svg.append('text')
+      plot.append('text')
         .attr('x', 5)
         .attr('y', yScale(leftMax) - 5)
         .attr('fill', '#ff7043')
@@ -192,7 +158,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     if (rightMax > 0 && position >= 0 && (phase === 'scanRightComplete' || phase === 'compare' || 
         phase === 'waterFound')) {
       const rightLineX = xScale(position.toString())! + xScale.bandwidth();
-      svg.append('line')
+      plot.append('line')
         .attr('x1', rightLineX)
         .attr('x2', width)
         .attr('y1', yScale(rightMax))
@@ -201,7 +167,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', '5,5');
       
-      svg.append('text')
+      plot.append('text')
         .attr('x', width - 5)
         .attr('y', yScale(rightMax) - 5)
         .attr('text-anchor', 'end')
@@ -216,7 +182,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       const minHeight = Math.min(leftMax, rightMax);
       if (minHeight > 0 && position >= 0) {
         const barX = xScale(position.toString())!;
-        svg.append('line')
+        plot.append('line')
           .attr('x1', barX)
           .attr('x2', barX + xScale.bandwidth())
           .attr('y1', yScale(minHeight))
@@ -234,7 +200,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
         const isActive = i === position;
         const isScan = scanIndex !== undefined && i === scanIndex;
 
-        svg.append('circle')
+        plot.append('circle')
           .attr('cx', barX + barWidth / 2)
           .attr('cy', height + 20)
           .attr('r', 10)
@@ -242,7 +208,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
           .attr('stroke', '#fff')
           .attr('stroke-width', 1);
 
-        svg.append('text')
+        plot.append('text')
           .attr('x', barX + barWidth / 2)
           .attr('y', height + 24)
           .attr('text-anchor', 'middle')
@@ -255,7 +221,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
 
 
     // 图例
-    const legend = svg.append('g')
+    const legend = plot.append('g')
       .attr('transform', `translate(${width - 100}, 10)`);
 
     // 图例背景
@@ -295,10 +261,11 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     });
 
     // 顶部状态面板
-    const statePanel = svg.append('g')
+    const statePanel = plot.append('g')
       .attr('class', 'state-panel')
       .attr('transform', `translate(0, -65)`);
 
+    statePanel.raise();
     statePanel.append('rect')
       .attr('x', 0)
       .attr('y', 0)
@@ -346,7 +313,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
         .text(v.value);
     });
 
-  }, [heights, currentStep, dimensions, currentStepIndex, totalSteps]);
+  }, [heights, currentStep, dimensions, currentStepIndex, totalSteps, speed]);
 
   const handleSpeedChange = (newSpeed: number) => {
     onSpeedChange(newSpeed);
@@ -392,7 +359,8 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
           </div>
         )}
       </div>
-      <div className="visualization-wrapper">
+      <div className="visualization-wrapper shared-algorithm-workspace">
+        {currentStep && <VisualizationTeachingLayer operation={bruteForceOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.subStepDescription || currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '左界', value: currentStep.leftMax }, { label: '右界', value: currentStep.rightMax }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
@@ -414,5 +382,13 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     </div>
   );
 };
+
+function bruteForceOperation(phase: string): string {
+  if (phase.startsWith('scanLeft')) return '扫描左边界';
+  if (phase.startsWith('scanRight')) return '扫描右边界';
+  if (phase === 'compare') return '计算当前位置水量';
+  if (phase === 'complete') return '完成';
+  return '选择当前位置';
+}
 
 export default BruteForceVisualizer;
