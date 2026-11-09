@@ -1,18 +1,29 @@
 import { useEffect, useState } from 'react';
+import { CodeLineBinding, createCodeLineBinding } from '../../components/canvas/animation/types';
 import { useAnimationPlayback } from '../shared/useAnimationPlayback';
 
 export interface RowByRowStep {
   heights: number[];
-  currentRow: number;        // 当前处理的行（高度层级）
-  currentCol: number;        // 当前处理的列
-  isStart: boolean;          // 是否已经开始计算（遇到第一个>=currentRow的柱子）
-  tempSum: number;           // 当前行的临时水量
-  rowWater: number;          // 当前行已确认的水量
-  totalWater: number;        // 总水量
-  waterMatrix: number[][];   // 水的矩阵，用于可视化每个位置每层的水
+  currentRow: number;
+  currentCol: number;
+  isStart: boolean;
+  tempSum: number;
+  rowWater: number;
+  totalWater: number;
+  waterMatrix: number[][];
   phase: 'init' | 'scanRow' | 'rowComplete' | 'complete';
   description: string;
+  codeLineBindings?: CodeLineBinding;
 }
+
+const CODE_LINE_MAPPINGS = {
+  init: createCodeLineBinding([2, 3, 4, 5], [2, 3, 5, 6], [2, 3, 4, 5], [2, 4, 5]),
+  maxScan: createCodeLineBinding([3, 4], [5], [3, 4, 5], [4]),
+  scanStart: createCodeLineBinding(8, 8, 10, 7),
+  scanCell: createCodeLineBinding([10, 11, 12, 13, 15], [10, 11, 12, 13], [12, 13, 14, 15], [9, 10, 11, 12]),
+  rowComplete: createCodeLineBinding([12, 13, 15, 18], [12, 13, 14, 15], [14, 15, 17, 20], [11, 12, 14, 17]),
+  done: createCodeLineBinding(19, 16, 21, 18),
+};
 
 interface UseRowByRowStepsProps {
   heights: number[];
@@ -23,135 +34,72 @@ export const useRowByRowSteps = ({ heights, speed = 500 }: UseRowByRowStepsProps
   const [steps, setSteps] = useState<RowByRowStep[]>([]);
   const playback = useAnimationPlayback(steps, speed);
 
-  // 生成所有动画步骤
   useEffect(() => {
     const n = heights.length;
-    if (n === 0) {
+    if (!n) {
       setSteps([]);
       return;
     }
 
     const generatedSteps: RowByRowStep[] = [];
-    const maxHeight = Math.max(...heights);
-    
-    // 初始化水矩阵
-    const waterMatrix: number[][] = Array(maxHeight).fill(null).map(() => Array(n).fill(0));
+    const maxHeight = Math.max(0, ...heights);
+    const waterMatrix: number[][] = Array.from({ length: maxHeight }, () => Array(n).fill(0));
+    const snapshotMatrix = (): number[][] => [...waterMatrix];
+    const setWaterCell = (row: number, col: number, value: number): void => {
+      if (waterMatrix[row][col] === value) return;
+      waterMatrix[row] = [...waterMatrix[row]];
+      waterMatrix[row][col] = value;
+    };
     let totalWater = 0;
 
-    // 初始状态
-    generatedSteps.push({
-      heights,
-      currentRow: 0,
-      currentCol: -1,
-      isStart: false,
-      tempSum: 0,
-      rowWater: 0,
-      totalWater: 0,
-      waterMatrix: waterMatrix.map(row => [...row]),
-      phase: 'init',
-      description: `初始化：最大高度为${maxHeight}，将逐行计算每层的水量`
-    });
+    generatedSteps.push({ heights, currentRow: 0, currentCol: -1, isStart: false, tempSum: 0, rowWater: 0, totalWater: 0, waterMatrix: snapshotMatrix(), phase: 'init', description: `初始化：最高柱高为 ${maxHeight}，需要扫描 ${maxHeight} 层；水格先标为候选，只有左右边界闭合后才计入答案。`, codeLineBindings: CODE_LINE_MAPPINGS.init });
+    generatedSteps.push({ heights, currentRow: maxHeight, currentCol: -1, isStart: false, tempSum: 0, rowWater: 0, totalWater: 0, waterMatrix: snapshotMatrix(), phase: 'init', description: `先扫描数组找最高柱，确定最多需要处理 ${maxHeight} 层。`, codeLineBindings: CODE_LINE_MAPPINGS.maxScan });
 
-    // 逐行计算
     for (let row = 1; row <= maxHeight; row++) {
       let isStart = false;
       let tempSum = 0;
       let rowWater = 0;
+      generatedSteps.push({ heights, currentRow: row, currentCol: -1, isStart, tempSum, rowWater, totalWater, waterMatrix: snapshotMatrix(), phase: 'scanRow', description: `开始扫描高度 ${row}：寻找两堵达到该高度的墙之间的空格。`, codeLineBindings: CODE_LINE_MAPPINGS.scanStart });
 
-      // 开始新行
-      generatedSteps.push({
-        heights,
-        currentRow: row,
-        currentCol: -1,
-        isStart: false,
-        tempSum: 0,
-        rowWater: 0,
-        totalWater,
-        waterMatrix: waterMatrix.map(r => [...r]),
-        phase: 'scanRow',
-        description: `开始计算第${row}层的水量`
-      });
-
-      // 遍历每一列
       for (let col = 0; col < n; col++) {
         const prevIsStart = isStart;
         const prevTempSum = tempSum;
-
         if (isStart && heights[col] < row) {
           tempSum++;
-          // 临时标记这个位置可能有水
-          waterMatrix[row - 1][col] = 1;
+          setWaterCell(row - 1, col, 1);
         }
-        
         if (heights[col] >= row) {
-          if (isStart && prevTempSum > 0) {
-            // 确认之前的水量
-            rowWater += prevTempSum;
-          }
+          if (isStart && prevTempSum > 0) rowWater += prevTempSum;
           tempSum = 0;
           isStart = true;
         }
-
-        // 记录每一步
-        generatedSteps.push({
-          heights,
-          currentRow: row,
-          currentCol: col,
-          isStart,
-          tempSum,
-          rowWater,
-          totalWater: totalWater + rowWater,
-          waterMatrix: waterMatrix.map(r => [...r]),
-          phase: 'scanRow',
-          description: heights[col] >= row
-            ? `位置${col}：高度${heights[col]} >= ${row}，${prevIsStart ? (prevTempSum > 0 ? `确认水量+${prevTempSum}` : '重置计数') : '开始计数'}`
-            : (isStart 
-                ? `位置${col}：高度${heights[col]} < ${row}，临时水量+1` 
-                : `位置${col}：高度${heights[col]} < ${row}，等待遇到第一个高墙`)
-        });
+        const explanation = heights[col] >= row
+          ? prevIsStart
+            ? prevTempSum > 0
+              ? `右墙封住左墙后的 ${prevTempSum} 格候选水，本层水量增加。`
+              : `这根达到层高 ${row} 的柱子成为当前新的右边界。`
+            : `位置 ${col} 是本层第一堵墙，先建立左边界。`
+          : isStart
+            ? `位置 ${col} 低于层高 ${row}，先记为 1 格候选水；右墙未出现前不计入答案。`
+            : `左墙尚未出现，位置 ${col} 的低地不能存水，暂不计数。`;
+        generatedSteps.push({ heights, currentRow: row, currentCol: col, isStart, tempSum, rowWater, totalWater: totalWater + rowWater, waterMatrix: snapshotMatrix(), phase: 'scanRow', description: explanation, codeLineBindings: CODE_LINE_MAPPINGS.scanCell });
       }
 
-      // 清除未确认的临时水（右边没有墙封住的水）
       for (let col = n - 1; col >= 0; col--) {
         if (heights[col] >= row) break;
-        waterMatrix[row - 1][col] = 0;
+        setWaterCell(row - 1, col, 0);
       }
-
       totalWater += rowWater;
-
-      // 行完成
-      generatedSteps.push({
-        heights,
-        currentRow: row,
-        currentCol: n,
-        isStart,
-        tempSum: 0,
-        rowWater,
-        totalWater,
-        waterMatrix: waterMatrix.map(r => [...r]),
-        phase: 'rowComplete',
-        description: `第${row}层完成：本层水量=${rowWater}，累计总水量=${totalWater}`
-      });
+      generatedSteps.push({ heights, currentRow: row, currentCol: n, isStart, tempSum: 0, rowWater, totalWater, waterMatrix: snapshotMatrix(), phase: 'rowComplete', description: rowWater
+        ? `第 ${row} 层闭合，确认 ${rowWater} 格；未闭合的右侧候选已清除，累计 ${totalWater} 格。`
+        : `第 ${row} 层没有被两堵墙闭合的低地，候选水不计入答案，累计仍为 ${totalWater} 格。`, codeLineBindings: CODE_LINE_MAPPINGS.rowComplete });
     }
 
-    // 最终结果
-    generatedSteps.push({
-      heights,
-      currentRow: maxHeight,
-      currentCol: -1,
-      isStart: false,
-      tempSum: 0,
-      rowWater: 0,
-      totalWater,
-      waterMatrix: waterMatrix.map(r => [...r]),
-      phase: 'complete',
-      description: `计算完成：总雨水量=${totalWater}单位`
-    });
-
+    generatedSteps.push({ heights, currentRow: maxHeight, currentCol: -1, isStart: false, tempSum: 0, rowWater: 0, totalWater, waterMatrix: snapshotMatrix(), phase: 'complete', description: `分层扫描结束：共接住 ${totalWater} 格雨水。`, codeLineBindings: CODE_LINE_MAPPINGS.done });
     setSteps(generatedSteps);
   }, [heights]);
 
-  return playback;
+  return { ...playback, steps };
 };
 
 export default useRowByRowSteps;

@@ -7,6 +7,7 @@ import AnimationControls from '../../components/common/AnimationControls';
 import TwoPointersCodePanel from './TwoPointersCodePanel';
 import RainwaterVisualChecks from './RainwaterVisualChecks';
 import { motionDuration } from './motion';
+import { resolveHeightDomain } from '../shared/visualDomain';
 import './TwoPointersVisualizer.css';
 
 interface TwoPointersVisualizerProps {
@@ -51,7 +52,7 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
     const heightInner = Math.max(1, viewHeight - margin.top - margin.bottom);
     const transitionMs = motionDuration(speed, reducedMotion);
     const { left, right, leftMax, rightMax, water, totalWater, currentFill, phase, decision, calculation } = currentStep;
-    const maxHeight = Math.max(1, ...heights, ...water.map((amount, index) => heights[index] + amount));
+    const [, maxHeight] = resolveHeightDomain([...heights, ...water.map((amount, index) => heights[index] + amount)]);
     const x = d3.scaleBand<number>().domain(heights.map((_, index) => index)).range([0, widthInner]).padding(heights.length > 20 ? 0.16 : 0.22);
     const y = d3.scaleLinear().domain([0, maxHeight * 1.14]).range([heightInner, 0]);
     const root = d3.select(svgRef.current);
@@ -73,9 +74,15 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       }));
     }
     plot.attr('transform', `translate(${cameraRef.current.x + margin.left * cameraRef.current.scale},${cameraRef.current.y + margin.top * cameraRef.current.scale}) scale(${cameraRef.current.scale})`);
-    plot.select<SVGGElement>('.layer-grid').call(d3.axisLeft(y).ticks(5).tickSize(-widthInner).tickFormat(() => '')).call(g => g.selectAll('path').remove()).call(g => g.selectAll('line').attr('stroke', COLORS.grid).attr('stroke-width', 1)).call(g => g.selectAll('.tick text').remove());
+    plot.select<SVGGElement>('.layer-grid').call(d3.axisLeft(y).ticks(5).tickSize(-widthInner).tickFormat(d3.format('~g'))).call(g => g.selectAll('path').remove()).call(g => g.selectAll('line').attr('stroke', COLORS.grid).attr('stroke-width', 1));
 
     const focusedIndex = phase === 'init' || phase === 'moveLeft' ? left : phase === 'moveRight' ? right : null;
+    const xAxis = d3.axisBottom(x).tickFormat(index => `${index}`).tickSize(0).tickPadding(8);
+    plot.selectAll<SVGGElement, unknown>('.layer-index-axis').data([null]).join('g')
+      .attr('class', 'layer-index-axis').attr('transform', `translate(0,${heightInner})`)
+      .call(xAxis).call(axis => axis.select('.domain').attr('stroke', '#aebbb7'))
+      .call(axis => axis.selectAll('text').attr('fill', '#687b76').attr('font-size', heights.length > 24 ? 8 : 10));
+    plot.select('.layer-grid').selectAll('.tick text').attr('x', -8).attr('text-anchor', 'end');
     const statuses = heights.map((value, index) => ({
       id: `bar-${index}`, index, value,
       status: currentStep.phase === 'complete' ? 'done' : phase === 'compare' && (index === left || index === right) ? 'compare' : index === focusedIndex ? 'current' : index < left || index > right ? 'visited' : 'idle'
@@ -98,8 +105,11 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       highlighted: (index === left && phase === 'moveLeft') || (index === right && phase === 'moveRight'),
       surface: true
     }));
+    const currentIndex = phase === 'moveRight' ? right : left;
+    const fillAtCurrent = phase === 'moveLeft' || phase === 'moveRight' ? water[currentIndex] || 0 : 0;
+    const visibleWater = phase === 'complete' ? waterData : waterData.filter(cell => (water[Number(cell.id.slice(6))] || 0) > 0);
     const waterGroup = plot.select<SVGGElement>('.layer-water');
-    renderWaterCells(waterGroup, waterData, transitionMs, `twoPointers:${heights.join(',')}`, reducedMotion);
+    renderWaterCells(waterGroup, visibleWater, transitionMs, `twoPointers:${heights.join(',')}`, reducedMotion);
     plot.select('.layer-water-ripples').raise();
     const rippleKey = `${currentStepIndex}:${currentStep.operation}:${currentStep.currentFill || 0}`;
     const shouldRipple = !reducedMotion && Boolean(currentStep.currentFill) && rippleStepRef.current !== rippleKey;
@@ -117,13 +127,19 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
         return (time: number) => `M${cell.x},${cell.y + 2 - time * 5} Q${cell.x + width * 0.25},${cell.y - 4 - time * 5} ${cell.x + width * 0.5},${cell.y + 1 - time * 5} T${cell.x + width},${cell.y + 1 - time * 5}`;
       }).attr('opacity', 0).remove();
 
-    const guideData = [{ id: 'left-max', value: leftMax, start: 0, end: x(left) ?? 0, labelX: x(left) ?? 0, color: COLORS.current, label: `leftMax ${leftMax}` }, { id: 'right-max', value: rightMax, start: widthInner, end: (x(right) ?? widthInner) + x.bandwidth(), labelX: (x(right) ?? widthInner) + x.bandwidth(), color: COLORS.done, label: `rightMax ${rightMax}` }];
+    const guideData = [{ id: 'left-max', value: leftMax, start: 0, end: x(left) ?? 0, labelX: 8, color: COLORS.current, label: `L max ${leftMax}`, side: 'start' }, { id: 'right-max', value: rightMax, start: widthInner, end: (x(right) ?? widthInner) + x.bandwidth(), labelX: widthInner - 8, color: COLORS.done, label: `R max ${rightMax}`, side: 'end' }];
     const guides = plot.select('.layer-guides').selectAll<SVGLineElement, typeof guideData[number]>('line.guide').data(guideData, d => d.id);
     guides.enter().append('line').attr('class', 'guide').merge(guides).interrupt('update').transition('update').duration(transitionMs)
       .attr('x1', d => d.start).attr('x2', d => d.end).attr('y1', d => y(d.value)).attr('y2', d => y(d.value)).attr('stroke', d => d.color);
     const guideLabels = plot.select('.layer-labels').selectAll<SVGTextElement, typeof guideData[number]>('text.guide-label').data(guideData, d => d.id);
-    guideLabels.join('text').attr('class', 'guide-label').attr('text-anchor', (_, index) => index ? 'end' : 'start').attr('x', d => d.labelX).attr('y', d => y(d.value) - 6).text(d => d.label);
-    const anchorData = currentStep.phase === 'compare' ? [{ id: `anchor-left-${left}`, index: left, label: 'height[L]', color: COLORS.current }, { id: `anchor-right-${right}`, index: right, label: 'height[R]', color: COLORS.done }] : currentStep.phase === 'moveLeft' || currentStep.phase === 'moveRight' ? [{ id: `anchor-active-${currentStep.phase === 'moveRight' ? right : left}`, index: currentStep.phase === 'moveRight' ? right : left, label: `height[${currentStep.phase === 'moveRight' ? 'R' : 'L'}]`, color: currentStep.currentFill ? COLORS.water : COLORS.current }] : [];
+    const guideLabelY = (guide: typeof guideData[number]) => {
+      const coordinate = y(guide.value);
+      if (coordinate < 26) return guide.id === 'left-max' ? coordinate + 38 : coordinate + 16;
+      if (guide.id === 'left-max') return coordinate - 8;
+      return coordinate + 14;
+    };
+    guideLabels.join('text').attr('class', 'guide-label').attr('text-anchor', d => d.side).attr('x', d => d.labelX).attr('y', guideLabelY).text(d => d.label);
+    const anchorData = currentStep.phase === 'moveLeft' || currentStep.phase === 'moveRight' ? [{ id: `anchor-active-${currentStep.phase === 'moveRight' ? right : left}`, index: currentStep.phase === 'moveRight' ? right : left, label: fillAtCurrent ? `本列 +${fillAtCurrent} 格水` : '新边界', color: fillAtCurrent ? COLORS.water : COLORS.current }] : [];
     const anchors = plot.select('.layer-labels').selectAll<SVGGElement, typeof anchorData[number]>('g.value-anchor').data(anchorData, d => d.id);
     anchors.exit().interrupt().transition('exit').duration(transitionMs).attr('opacity', 0).remove();
     const anchorEnter = anchors.enter().append('g').attr('class', 'value-anchor').attr('opacity', 0);
@@ -150,8 +166,10 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       .attr('d', d => `M${(x(d.from) ?? 0) + x.bandwidth() / 2},${y(heights[d.from] || 0) - 18} Q${(x(d.from) ?? 0) + x.bandwidth() / 2},${y(heights[d.from] || 0) - 48} ${(x(Math.max(0, Math.min(heights.length - 1, d.from + (d.label.includes('左') ? 1 : -1)))) ?? 0) + x.bandwidth() / 2},${y(heights[Math.max(0, Math.min(heights.length - 1, d.from + (d.label.includes('左') ? 1 : -1)))] || 0) - 18}`)
       .attr('stroke', d => d.label.includes('左') ? COLORS.current : COLORS.done).attr('opacity', 1);
 
-    plot.select('.layer-labels').selectAll<SVGTextElement, typeof heights[number]>('text.value-label').data(heights, (_, index) => `value-${index}`)
-      .join('text').attr('class', 'value-label').attr('data-node-id', (_, index) => `value-${index}`).attr('x', (_, index) => (x(index) ?? 0) + x.bandwidth() / 2).attr('y', d => y(d) - 6).text(d => d);
+    const labeledIndices = new Set([focusedIndex, ...(phase === 'compare' ? [left, right] : [])].filter((index): index is number => index !== null));
+    const valueLabels = heights.map((value, index) => ({ value, index })).filter(item => labeledIndices.has(item.index) || (phase === 'complete' && item.index % (heights.length > 24 ? 3 : 1) === 0));
+    plot.select('.layer-labels').selectAll<SVGTextElement, typeof valueLabels[number]>('text.value-label').data(valueLabels, item => `value-${item.index}`)
+      .join('text').attr('class', 'value-label').attr('data-node-id', item => `value-${item.index}`).attr('x', item => (x(item.index) ?? 0) + x.bandwidth() / 2).attr('y', item => y(item.value) - 8).text(item => item.value);
 
     root.selectAll('.teaching-layer').data([currentStep]).join('g').attr('class', 'teaching-layer').attr('transform', `translate(${margin.left},${Math.max(12, margin.top - 28)})`)
       .call(group => {
@@ -160,15 +178,15 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       });
     const narrativeGroup = root.selectAll('.narration-card').data([currentStep]).join('g').attr('class', 'narration-card').attr('transform', `translate(${margin.left},${viewHeight - 50})`);
     narrativeGroup.selectAll('rect').data([null]).join('rect').attr('width', Math.max(0, width - margin.left - margin.right)).attr('height', 36).attr('rx', 7);
-    narrativeGroup.selectAll('text').data([currentStep]).join('text').attr('class', 'step-narration').attr('x', 10).attr('y', 22).text(currentStep.narration || currentStep.description || '算法状态更新');
-    root.selectAll('.canvas-metrics').data([null]).join('text').attr('class', 'canvas-metrics').attr('x', width - 16).attr('y', 20).attr('text-anchor', 'end').text(`累积 ${totalWater} 格 · leftMax ${leftMax} · rightMax ${rightMax}`);
+    narrativeGroup.selectAll('text').data([currentStep]).join('text').attr('class', 'step-narration').attr('x', 10).attr('y', 22).text(describeTwoPointerFrame(currentStep));
+    root.selectAll('.canvas-metrics').data([null]).join('text').attr('class', 'canvas-metrics').attr('x', width - 16).attr('y', 20).attr('text-anchor', 'end').text(`累计接水 ${totalWater} 格  |  左边界 ${leftMax}  |  右边界 ${rightMax}`);
     root.selectAll('.bar-tooltip').data(hoveredBar ? [hoveredBar] : []).join('g').attr('class', 'bar-tooltip').attr('transform', d => `translate(${margin.left + (x(d.index) ?? 0) + x.bandwidth() / 2},${margin.top + Math.max(30, y(d.height + d.water) - 36)})`).call(group => {
       group.selectAll('rect').data([null]).join('rect').attr('x', -70).attr('y', -16).attr('width', 140).attr('height', 28).attr('rx', 5);
       group.selectAll('text').data(hoveredBar ? [hoveredBar] : []).join('text').attr('text-anchor', 'middle').attr('y', 2).text(d => `i=${d.index} · 高 ${d.height} · 水 ${d.water}`);
     });
     root.selectAll('.canvas-legend').data([null]).join('g').attr('class', 'canvas-legend').attr('transform', `translate(${margin.left},${viewHeight - 18})`)
       .call(group => {
-        const legendData = [{ label: '当前', color: COLORS.current }, { label: '比较', color: COLORS.compare }, { label: '已处理', color: COLORS.visited }, { label: '完成', color: COLORS.done }];
+        const legendData = [{ label: '当前柱', color: COLORS.current }, { label: '正在比较', color: COLORS.compare }, { label: '已处理', color: COLORS.visited }, { label: '存水', color: COLORS.water }];
         const items = group.selectAll<SVGGElement, typeof legendData[number]>('g').data(legendData, d => d.label).join(enter => { const item = enter.append('g'); item.append('circle').attr('r', 5); item.append('text').attr('x', 9).attr('y', 4); return item; }).attr('transform', (_, index) => `translate(${index * 80},0)`);
         items.select('circle').attr('fill', d => d.color); items.select('text').text(d => d.label);
       });
@@ -196,8 +214,25 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
   </section>;
 };
 
+export function describeTwoPointerFrame(step: NonNullable<ReturnType<typeof useTwoPointersSteps>['currentStep']>): string {
+  if (step.phase === 'complete') return `计算完成：一共接住 ${step.totalWater} 格水。`;
+  if (step.phase === 'init') return `从左右两端开始。水面高度由两边较矮的边界决定。`;
+  if (step.phase === 'compare') {
+    const side = step.decision?.action === 'move_left' ? '左' : '右';
+    const height = side === '左' ? step.decision?.leftHeight : step.decision?.rightHeight;
+    return `比较两端：${side}边柱高 ${height}，本轮处理${side}边，因为较矮的一边决定水位。`;
+  }
+  const index = step.phase === 'moveRight' ? step.right : step.left;
+  const height = step.heights[index] ?? 0;
+  const boundary = step.phase === 'moveRight' ? step.rightMax : step.leftMax;
+  const amount = step.water[index] ?? 0;
+  return amount > 0
+    ? `处理第 ${index} 根柱：柱高 ${height}，边界水位 ${boundary}，本列装 ${boundary} − ${height} = ${amount} 格；累计 ${step.totalWater} 格。`
+    : `处理第 ${index} 根柱：柱高 ${height} 达到新的边界 ${boundary}，本列不存水；累计 ${step.totalWater} 格。`;
+}
+
 function operationLabel(phase: string): string {
-  return ({ init: '初始化', compare: '比较两端', moveLeft: '处理左侧', moveRight: '处理右侧', complete: '计算完成' } as Record<string, string>)[phase] || '扫描';
+  return ({ init: '从两端开始', compare: '比较两端高度', moveLeft: '处理左侧柱子', moveRight: '处理右侧柱子', complete: '计算完成' } as Record<string, string>)[phase] || '扫描';
 }
 
 export default TwoPointersVisualizer;

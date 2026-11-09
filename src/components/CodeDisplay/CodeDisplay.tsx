@@ -22,9 +22,14 @@ export interface VariableState {
 
 interface CodeDisplayProps {
   codes: Record<Language, string>;
+  title?: string;
+  className?: string;
   currentLine?: number; // 当前执行行（从1开始）
+  currentLineByLanguage?: Partial<Record<Language, number>>;
+  highlightLines?: number[];
+  highlightLinesByLanguage?: Partial<Record<Language, number[]>>;
   variables?: VariableState[]; // 当前变量状态
-  highlightLines?: number[]; // 需要高亮的行
+  variablesByLanguage?: Partial<Record<Language, VariableState[]>>;
 }
 
 // 简单的语法高亮函数
@@ -93,9 +98,14 @@ const highlightSyntax = (code: string, language: Language): string => {
 
 const CodeDisplay: React.FC<CodeDisplayProps> = ({
   codes,
+  title = '算法代码',
+  className,
   currentLine,
+  currentLineByLanguage,
   variables = [],
-  highlightLines = []
+  variablesByLanguage,
+  highlightLines = [],
+  highlightLinesByLanguage
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('javascript');
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -120,16 +130,17 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({
   const lines = currentCode.split('\n');
   
   // 获取某行的变量状态
+  const activeVariables = variablesByLanguage?.[selectedLanguage] ?? variables;
   const getVariablesForLine = (lineNumber: number): VariableState[] => {
-    return variables.filter(v => v.line === lineNumber);
+    return activeVariables.filter(v => v.line === lineNumber);
   };
 
   return (
-    <div className={`code-display ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className={`code-display ${className ?? ''} ${isCollapsed ? 'collapsed' : ''}`.trim()}>
       <div className="code-header">
         <div className="code-title" onClick={() => setIsCollapsed(!isCollapsed)}>
           <span className="toggle-icon">{isCollapsed ? '▶' : '▼'}</span>
-          <span>算法代码</span>
+          <span>{title}</span>
         </div>
         <div className="language-tabs">
           {(Object.keys(languageConfig) as Language[]).map(lang => (
@@ -149,8 +160,10 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({
           <div className="code-lines">
             {lines.map((line, index) => {
               const lineNumber = index + 1;
-              const isCurrentLine = currentLine === lineNumber;
-              const isHighlighted = highlightLines.includes(lineNumber);
+              const activeLine = currentLineByLanguage?.[selectedLanguage] ?? currentLine;
+              const activeLines = highlightLinesByLanguage?.[selectedLanguage] ?? highlightLines;
+              const isCurrentLine = activeLine === lineNumber;
+              const isHighlighted = activeLines.includes(lineNumber);
               const lineVariables = getVariablesForLine(lineNumber);
               
               return (

@@ -16,6 +16,26 @@ describe('useAnimationPlayback', () => {
     expect(result.current.currentStep).toBe('compare');
   });
 
+  it('wraps replay from the final frame, handles a single-frame sequence, and clamps negative seek', () => {
+    const steps = ['first', 'last'];
+    const { result } = renderHook(() => useAnimationPlayback(steps, 500));
+    act(() => result.current.goToStep(99));
+    expect(result.current.currentStep).toBe('last');
+    act(() => result.current.togglePlay());
+    expect(result.current.currentStep).toBe('first');
+    act(() => jest.advanceTimersByTime(500));
+    expect(result.current.currentStep).toBe('last');
+    expect(result.current.isPlaying).toBe(false);
+
+    const { result: oneFrameResult } = renderHook(() => useAnimationPlayback(['only']));
+    act(() => oneFrameResult.current.togglePlay());
+    act(() => jest.runOnlyPendingTimers());
+    expect(oneFrameResult.current.currentStep).toBe('only');
+    expect(oneFrameResult.current.progress).toBe(0);
+    act(() => oneFrameResult.current.setProgress(-20));
+    expect(oneFrameResult.current.currentStep).toBe('only');
+  });
+
   it('resets to the first snapshot when the data changes and clamps seeks', () => {
     const initial = [1, 2, 3];
     const next = [4, 5];

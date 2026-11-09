@@ -21,18 +21,17 @@ export interface AnimationStep {
 const CODE_LINE_MAPPINGS = {
   // 初始化数组
   initArrays: createCodeLineBinding([2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7], [2, 3, 4, 5, 6, 7], [2, 3, 4, 5, 6]),
-  // 左侧扫描初始化
-  leftScanInit: createCodeLineBinding(9, 10, 10, 9),
+  leftBoundaryInit: createCodeLineBinding(9, 10, 11, 9),
   // 左侧扫描循环
-  leftScanLoop: createCodeLineBinding([10, 11], [11, 12], [11, 12], [10, 11]),
+  leftScanLoop: createCodeLineBinding([10, 11], [11, 12], [13, 14], [10, 11]),
   // 右侧扫描初始化
-  rightScanInit: createCodeLineBinding(15, 16, 16, 15),
+  rightScanInit: createCodeLineBinding(15, 15, 17, 14),
   // 右侧扫描循环
-  rightScanLoop: createCodeLineBinding([16, 17], [17, 18], [17, 18], [16, 17]),
+  rightScanLoop: createCodeLineBinding([16, 17], [17, 18], [20, 21], [19, 20]),
   // 计算水量
-  calcWater: createCodeLineBinding([21, 22], [22, 23], [22, 23], [21, 22]),
+  calcWater: createCodeLineBinding(23, 22, 25, 22),
   // 返回结果
-  returnResult: createCodeLineBinding(24, 25, 25, 24),
+  returnResult: createCodeLineBinding(25, 24, 27, 26),
 };
 
 interface UsePrecomputationStepsProps {
@@ -79,7 +78,7 @@ export const usePrecomputationSteps = ({ heights, speed = 500 }: UsePrecomputati
       currentIndex: 0,
       phase: 'leftScan',
       description: `左侧扫描：leftMax[0] = height[0] = ${heights[0]}`,
-      codeLineBindings: CODE_LINE_MAPPINGS.leftScanInit
+      codeLineBindings: CODE_LINE_MAPPINGS.leftBoundaryInit
     });
 
     for (let i = 1; i < n; i++) {
@@ -156,7 +155,7 @@ export const usePrecomputationSteps = ({ heights, speed = 500 }: UsePrecomputati
     setSteps(generatedSteps);
   }, [heights]);
 
-  return playback;
+  return { ...playback, steps };
 };
 
 export default usePrecomputationSteps; 

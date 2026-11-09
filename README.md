@@ -1,5 +1,11 @@
-# 42. 接雨水
+# LeetCode 42 — Trapping Rain Water
 
-通过交互式动画理解接雨水的多种算法及其执行过程。
+Explore five approaches to the Trapping Rain Water problem through interactive, step-by-step visualizations.
 
-线上演示：[GitHub Pages](https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/)
+**Live demo:** [fuck-algorithm.github.io/leetcode-42-trapping-rain-water](https://fuck-algorithm.github.io/leetcode-42-trapping-rain-water/)
+
+**Problem:** [LeetCode 42 — Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/)
+
+**Languages:** Java · Python · Go · JavaScript
+
+[简体中文](README.zh-CN.md)

@@ -4,8 +4,11 @@ import AnimationControls from '../../components/common/AnimationControls';
 import { BruteForceVisualizerProps } from './types';
 import useBruteForceSteps from './useBruteForceSteps';
 import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
-import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { clearTransientPlotLayer, createTransientPlotLayer, getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
 import { motionDuration } from '../twoPointers/motion';
+import { resolveHeightDomain } from '../shared/visualDomain';
+import { getBoundCodeLine } from '../shared/codeBinding';
+import BruteForceCodePanel from './BruteForceCodePanel';
 import '../shared/rainwater.css';
 import './BruteForceVisualizer.css';
 
@@ -69,22 +72,22 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       return;
     }
 
-    const controlsHeight = 120;
+    const controlsHeight = 154; // 说明栏 34px 与播放控制 120px
     const margin = { top: 80, right: 20, bottom: 30, left: 40 };
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
 
     const { position, leftMax, rightMax, waterLevel, totalWater, phase, scanIndex } = currentStep;
-    const maxHeight = Math.max(...heights, 1);
+    const [, maxHeight] = resolveHeightDomain(heights);
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
 
     const svgElement = d3.select(d3Container.current);
-    removeTransientSvgContent(svgElement);
-    const svg = svgElement
+    svgElement
       .attr('width', width + margin.left + margin.right)
       .attr('height', height + margin.top + margin.bottom);
     const plotTransform = `translate(${margin.left},${margin.top})`;
-    const plot = svg.append('g').attr('transform', plotTransform);
+    clearTransientPlotLayer(svgElement, 'brute-force');
+    const plot = createTransientPlotLayer(svgElement, 'brute-force', plotTransform);
 
     const barPadding = heights.length > 20 ? 0.05 : 0.1;
 
@@ -105,7 +108,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .attr('transform', 'rotate(-90)')
       .attr('y', -margin.left + 8)
       .attr('x', -height / 2)
-      .attr('fill', 'white')
+      .attr('fill', '#687b76')
       .attr('text-anchor', 'middle')
       .style('font-size', '0.7em')
       .text('高度');
@@ -239,7 +242,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
       { color: '#ff7043', label: '当前位置', y: 14 },
       { color: '#FFC107', label: '扫描位置', y: 28 },
-      { color: '#5B9BD5', label: '雨水', y: 42 }
+      { color: '#268fc2', label: '雨水', y: 42 }
     ];
 
     legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
@@ -360,11 +363,12 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer operation={bruteForceOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.subStepDescription || currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '左界', value: currentStep.leftMax }, { label: '右界', value: currentStep.rightMax }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'javascript').highlighted} operation={bruteForceOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.subStepDescription || currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '左界', value: currentStep.leftMax }, { label: '右界', value: currentStep.rightMax }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
         />
+        {currentStep && <BruteForceCodePanel step={currentStep} />}
         <AnimationControls
           isPlaying={isPlaying}
           onPlay={togglePlay}

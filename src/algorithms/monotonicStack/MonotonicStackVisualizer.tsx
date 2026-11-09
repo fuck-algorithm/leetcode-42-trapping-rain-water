@@ -3,8 +3,13 @@ import * as d3 from 'd3';
 import useMonotonicStackSteps, { MonotonicStackStep } from './useMonotonicStackSteps';
 import AnimationControls from '../../components/common/AnimationControls';
 import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
-import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { clearTransientPlotLayer, createTransientPlotLayer, getTransientContentLayer, getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
 import { motionDuration } from '../twoPointers/motion';
+import { resolveHeightDomain } from '../shared/visualDomain';
+import { getBoundCodeLine } from '../shared/codeBinding';
+import MonotonicStackCodePanel from './MonotonicStackCodePanel';
+import './MonotonicStackCodePanel.css';
+import './MonotonicStackVisualizer.css';
 import '../shared/rainwater.css';
 
 interface MonotonicStackVisualizerProps {
@@ -71,10 +76,9 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
     if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
       const svgNode = d3Container.current;
       const svgElement = d3.select(svgNode);
-      removeTransientSvgContent(svgElement);
       
       // 设置尺寸，减小边距
-      const controlsHeight = 50; // AnimationControls的高度
+      const controlsHeight = 78; // 外层标题栏 34px 与播放控制 44px
       const margin = { top: 8, right: 15, bottom: 20, left: 25 };
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
@@ -83,17 +87,19 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
       
       // 找到最大高度来设置缩放
-      const maxHeight = Math.max(
+      const [, maxHeight] = resolveHeightDomain([
         ...heights,
         ...heights.map((h, i) => h + (water[i] || 0))
-      );
+      ]);
       
       // 创建SVG容器
-      const svg = svgElement
+      svgElement
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom);
       const plotTransform = `translate(${margin.left},${margin.top})`;
-      const plot = svg.append('g').attr('transform', plotTransform);
+      clearTransientPlotLayer(svgElement, 'monotonic-stack');
+      const plot = createTransientPlotLayer(svgElement, 'monotonic-stack', plotTransform);
+      const dynamicLayer = getTransientContentLayer(plot as any);
       
       // 根据数组长度调整柱子间隔
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
@@ -118,25 +124,25 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       }
       
       // 添加X轴
-      plot.append('g')
+      dynamicLayer.append('g')
         .attr('transform', `translate(0,${height})`)
         .call(xAxis)
         .append('text')
         .attr('x', width / 2)
         .attr('y', margin.bottom - 5)
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .attr('text-anchor', 'middle')
         .style('font-size', '0.7em')
         .text('位置');
       
       // 添加Y轴，减少刻度数量
-      plot.append('g')
+      dynamicLayer.append('g')
         .call(d3.axisLeft(yScale).ticks(5))
         .append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', -margin.left + 8)
         .attr('x', -height / 2)
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .attr('text-anchor', 'middle')
         .style('font-size', '0.7em')
         .text('高度');
@@ -162,14 +168,14 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       })), motionDuration(speed, reducedMotion), `monotonicStack:${heights.join(',')}`, reducedMotion);
       
       // 简化图例
-      const legend = plot.append('g')
+      const legend = dynamicLayer.append('g')
         .attr('transform', `translate(${width - 80}, 5)`);
 
       // 图例背景
       legend.append('rect')
         .attr('x', -5)
         .attr('y', -5)
-        .attr('width', 70)
+        .attr('width', 76)
         .attr('height', 55)
         .attr('fill', 'rgba(255, 255, 255, 0.95)')
         .attr('stroke', '#e0e0e0')
@@ -214,7 +220,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .attr('y', 28)
         .attr('width', 10)
         .attr('height', 10)
-        .attr('fill', '#5B9BD5');
+        .attr('fill', '#268fc2');
 
       legend.append('text')
         .attr('x', 14)
@@ -225,11 +231,11 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .text('雨水');
       
       // 添加水量
-      plot.append('text')
+      dynamicLayer.append('text')
         .attr('x', width / 2)
         .attr('y', 0)
         .attr('text-anchor', 'middle')
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .style('font-size', '0.75em')
         .text(`总雨水量: ${totalWater} 单位`);
       
@@ -237,19 +243,19 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       if (stack.length > 0 && stack.length <= 10) {
         // 当栈不太长时完整显示
         const stackText = `栈: [${stack.join(', ')}]`;
-        plot.append('text')
+        dynamicLayer.append('text')
           .attr('x', 10)
-          .attr('y', 0)
-          .attr('fill', 'white')
+          .attr('y', 14)
+          .attr('fill', '#687b76')
           .style('font-size', '0.7em')
           .text(stackText);
       } else if (stack.length > 10) {
         // 栈太长时只显示部分
         const stackText = `栈: [${stack.slice(0, 5).join(', ')}...(${stack.length})]`;
-        plot.append('text')
+        dynamicLayer.append('text')
           .attr('x', 10)
           .attr('y', 0)
-          .attr('fill', 'white')
+          .attr('fill', '#687b76')
           .style('font-size', '0.7em')
           .text(stackText);
       }
@@ -266,11 +272,11 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         operationText = `计算完成`;
       }
       
-      plot.append('text')
+      dynamicLayer.append('text')
         .attr('x', width / 2)
         .attr('y', height + margin.bottom - 5)
         .attr('text-anchor', 'middle')
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .style('font-size', '0.7em')
         .text(operationText);
     }
@@ -299,9 +305,9 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
             <div style={{ fontSize: '0.75em', marginTop: '5px', marginBottom: '10px', lineHeight: '1.6' }}>
               维护一个单调递减栈（栈底到栈顶高度递减）。
               <br />
-              当遇到比栈顶更高的柱子时，说明形成了凹槽，可以计算积水。
+              当遇到比栈顶更高的柱子，先弹出凹槽底；栈里仍有左墙时，才可按宽度和层高计算水量。
               <br />
-              类似括号匹配，每次找到一对"墙"就计算中间的水量。
+              若弹出后栈空，说明缺少左墙，这次只清除底部，不能计水。
             </div>
             
             <p><strong>算法步骤：</strong></p>
@@ -327,11 +333,12 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer operation={stackOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '比较当前柱和栈顶，判断是否形成新的接水容器。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '栈长度', value: currentStep.stack.length }, { label: '扫描索引', value: currentStep.currentIndex }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={stackOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '比较当前柱和栈顶，判断是否形成新的接水容器。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '栈长度', value: currentStep.stack.length }, { label: '扫描索引', value: currentStep.currentIndex }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
         />
+        {currentStep && <div className="monotonic-stack-code-panel"><MonotonicStackCodePanel className="code-display-compact" step={currentStep} /></div>}
         <AnimationControls
           isPlaying={isPlaying}
           onPlay={togglePlay}
