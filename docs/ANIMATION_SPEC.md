@@ -24,6 +24,8 @@
 - 状态类、数据标注和图例在 reduced-motion 下完整保留。
 - D3 按稳定 key 更新并在步骤跳转时 interrupt 命名过渡。
 - 视口支持指针拖拽平移与滚轮缩放；摄像机变换存放在 ref，步骤重画保留用户视口。
+- 单调栈弹出底部导致栈空时添加明确说明帧：此柱没有左墙，不能组成可计算的凹槽。
+- 双指针空输入使用单独的安全终态，不读取端点；四种解法的行号映射按各语言实际代码行核对，暴力/按行法现已提供行绑定。按行扫描的未闭合水格仅视作候选，遇到第二堵墙才计入答案。
 
 ## 可访问性与辅助阅读
 
@@ -31,3 +33,10 @@
 - 柱形具备键盘焦点与 aria-label；hover/focus 显示索引、柱高与蓄水 tooltip。
 - 辅助表格提供全部位置的高度和水量，索引带作为可见摘要，不依赖颜色或 tooltip 才能读数。
 - 截图证据：`docs/evidence/round-2/initial-reduced-motion.png`、`compare-step.png`、`process-step.png`；1x 连续步骤 trace：`step-transition-trace.zip`。
+
+## Round 4：视觉层级与步骤叙述复查
+
+- 柱体固定中性石板色；current/compare 通过不同描边粗细和颜色识别，水体保持独立蓝色系，避免“柱体是什么”随步骤改色。
+- 每帧只显示当前焦点/比较端的柱高标签；边界水平线保留，但边界文字锚定画布两侧并上下错开，不再压在柱顶数值上。
+- 双指针处理帧将“存水”与“刷新最高边界”分别用具体列号、边界值和累计量解释；零水量不再隐去“新边界”这一可观察变化。
+- 本轮实测：1366×768 Chromium 首屏与示例积水截图为 `refined-initial.png`、`refined-water-filled.png`；按行法首屏为 `row-by-row-initial.png`。Playwright 全套 15/15 通过；步骤边界、行级快照单测通过。覆盖率 exit code 为 0，但当前 lines/functions/branches 仍低于项目目标，不得据此判定验收 PASS。

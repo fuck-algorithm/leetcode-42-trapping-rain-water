@@ -13,6 +13,9 @@
 # production
 /build
 
+# Private/local network addresses for Claude Code statusline
+/server-url.txt
+
 # misc
 .DS_Store
 .env.local

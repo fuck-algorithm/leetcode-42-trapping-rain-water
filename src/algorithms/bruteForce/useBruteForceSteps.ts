@@ -1,6 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useAnimationPlayback } from '../shared/useAnimationPlayback';
+import { CodeLineBinding, createCodeLineBinding } from '../../components/canvas/animation/types';
 import { BruteForceStep } from './types';
+import { bruteForceCode } from '../algorithmCodes';
+
+const codeLines = (language: keyof typeof bruteForceCode, lines: number[]): number[] => {
+  const source = bruteForceCode[language].split('\n');
+  return lines.filter(line => line > 0 && line <= source.length);
+};
+
+const bindLines = (java: number[], python: number[], golang: number[], javascript: number[]): CodeLineBinding =>
+  createCodeLineBinding(codeLines('java', java), codeLines('python', python), codeLines('golang', golang), codeLines('javascript', javascript));
+
+const SCAN_LEFT = bindLines([9, 10, 11], [9, 10, 11], [9, 10, 11], [9, 10, 11]);
+const SCAN_LEFT_DONE = bindLines([11, 15, 16], [9, 10, 11], [10, 11, 12], [9, 10]);
+const SCAN_RIGHT = bindLines([15, 16, 17], [13, 14, 15], [13, 14, 15], [12, 13, 14]);
+const CALCULATE = bindLines([18], [17], [22], [18]);
+const WATER_COMMIT = bindLines([3, 18, 19], [3, 17], [3, 22], [3, 18]);
+const FINISH = bindLines([20, 21], [19], [24, 25], [20, 21]);
 
 interface UseBruteForceStepsProps {
   heights: number[];
@@ -35,7 +52,8 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
       rightMax: 0,
       totalWater: 0,
       description: '暴力法初始化',
-      subStepDescription: '对每个位置，找出左右两侧的最大高度，计算积水量'
+      subStepDescription: '对每个位置，分别扫描左右边界，再取较矮边界与柱高的差。',
+      codeLineBindings: bindLines([2, 3, 4], [2, 3], [2, 3, 4], [2, 3])
     });
 
     // 遍历每个位置
@@ -48,8 +66,9 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         rightMax: 0,
         waterLevel: { ...waterLevel },
         totalWater,
-        description: `开始处理位置 ${i}`,
-        subStepDescription: `高度为 ${heights[i]}，开始左侧扫描`
+        description: `从位置 ${i} 开始，先检查包含当前柱的左侧范围。`,
+        subStepDescription: `当前柱高 ${heights[i]}；左扫描从 0 到 ${i}，寻找最高左边界。`,
+        codeLineBindings: SCAN_LEFT
       });
 
       // 左侧扫描
@@ -65,8 +84,9 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         rightMax: 0,
         waterLevel: { ...waterLevel },
         totalWater,
-        description: `左侧扫描完成`,
-        subStepDescription: `位置 ${i} 左侧最大高度为 ${leftMax}`
+        description: `位置 ${i} 的左界已确定为 ${leftMax}；接着重新扫描右侧范围。`,
+        subStepDescription: `从当前列向右（含当前列）扫描，寻找最高右边界。`,
+        codeLineBindings: SCAN_LEFT_DONE
       });
 
       // 右侧扫描
@@ -82,8 +102,9 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         rightMax,
         waterLevel: { ...waterLevel },
         totalWater,
-        description: `右侧扫描完成`,
-        subStepDescription: `位置 ${i} 右侧最大高度为 ${rightMax}`
+        description: `位置 ${i} 的右界已确定为 ${rightMax}；可用较矮的一侧作为水位上限。`,
+        subStepDescription: `左右边界分别为 ${leftMax} 和 ${rightMax}。`,
+        codeLineBindings: SCAN_RIGHT
       });
 
 
@@ -98,8 +119,9 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         rightMax,
         waterLevel: { ...waterLevel },
         totalWater,
-        description: `比较左右最大高度`,
-        subStepDescription: `min(${leftMax}, ${rightMax}) = ${minHeight}`
+        description: `两侧最高边界的较小值为 ${minHeight}，它决定位置 ${i} 的水面高度。`,
+        subStepDescription: `min(${leftMax}, ${rightMax}) = ${minHeight}；本步把较低边界与柱高相减。`,
+        codeLineBindings: CALCULATE
       });
 
       if (water > 0) {
@@ -114,10 +136,11 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         rightMax,
         waterLevel: { ...waterLevel },
         totalWater,
-        description: water > 0 ? `位置 ${i} 可存水 ${water} 单位` : `位置 ${i} 不能存水`,
-        subStepDescription: water > 0 
-          ? `${minHeight} - ${heights[i]} = ${water}，总水量: ${totalWater}`
-          : `min(${leftMax}, ${rightMax}) <= ${heights[i]}`
+        description: water > 0 ? `位置 ${i} 的水位差为 ${water}，已加入总量。` : `位置 ${i} 的柱高不低于可达水位，因此不存水。`,
+        subStepDescription: water > 0
+          ? `${minHeight} - ${heights[i]} = ${water}；累计 ${totalWater} 格。`
+          : `${minHeight} - ${heights[i]} <= 0，累计仍为 ${totalWater} 格。`,
+        codeLineBindings: WATER_COMMIT
       });
     }
 
@@ -130,13 +153,14 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
       waterLevel: { ...waterLevel },
       totalWater,
       description: '算法完成',
-      subStepDescription: `总共捕获了 ${totalWater} 单位的雨水`
+      subStepDescription: `所有位置处理完成，共捕获 ${totalWater} 格雨水。`,
+      codeLineBindings: FINISH
     });
 
     setSteps(generatedSteps);
   }, [heights]);
 
-  return playback;
+  return { ...playback, steps };
 };
 
 export default useBruteForceSteps;

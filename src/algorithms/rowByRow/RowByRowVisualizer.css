@@ -43,6 +43,12 @@
   padding-top: 10px;
   border-top: 1px solid rgba(255, 152, 0, 0.3);
   color: #333;
+  max-height: min(28vh, 220px);
+  overflow: auto;
+}
+
+.row-by-row-visualizer:has(.detailed-description) .visualization-wrapper {
+  min-height: 0;
 }
 
 .row-by-row-visualizer .detailed-description p {

@@ -1,7 +1,10 @@
 // 暴力法算法相关类型定义
 
 // 暴力法算法步骤类型
+import { CodeLineBinding } from '../../components/canvas/animation/types';
+
 export interface BruteForceStep {
+  codeLineBindings?: CodeLineBinding;
   phase: 'init' | 'scanLeftStart' | 'scanLeftComplete' | 
          'scanRightStart' | 'scanRightComplete' | 
          'compare' | 'waterFound' | 'complete';

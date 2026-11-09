@@ -51,6 +51,15 @@
   flex-direction: column;
 }
 
+.brute-force-visualizer:has(.detailed-description) .visualization-wrapper {
+  min-height: 0;
+}
+
+.brute-force-visualizer .detailed-description {
+  max-height: min(28vh, 220px);
+  overflow: auto;
+}
+
 .brute-force-visualizer .d3-component {
   flex: 1;
   min-height: 0;

@@ -6,101 +6,105 @@ import { Language } from '../components/CodeDisplay/CodeDisplay';
 // 双指针法代码
 export const twoPointersCode: Record<Language, string> = {
   java: `public int trap(int[] height) {
+    if (height.length == 0) return 0;
     int left = 0, right = height.length - 1;
-    int leftMax = 0, rightMax = 0;
+    int leftMax = height[left], rightMax = height[right];
     int water = 0;
-    
+
     while (left < right) {
         if (height[left] <= height[right]) {
+            left++;
             if (height[left] >= leftMax) {
                 leftMax = height[left];
             } else {
                 water += leftMax - height[left];
             }
-            left++;
         } else {
+            right--;
             if (height[right] >= rightMax) {
                 rightMax = height[right];
             } else {
                 water += rightMax - height[right];
             }
-            right--;
         }
     }
     return water;
 }`,
 
   python: `def trap(height: list[int]) -> int:
+    if not height:
+        return 0
     left, right = 0, len(height) - 1
-    left_max, right_max = 0, 0
+    left_max, right_max = height[left], height[right]
     water = 0
-    
+
     while left < right:
         if height[left] <= height[right]:
+            left += 1
             if height[left] >= left_max:
                 left_max = height[left]
             else:
                 water += left_max - height[left]
-            left += 1
         else:
+            right -= 1
             if height[right] >= right_max:
                 right_max = height[right]
             else:
                 water += right_max - height[right]
-            right -= 1
-    
+
     return water`,
 
   golang: `func trap(height []int) int {
+    if len(height) == 0 { return 0 }
     left, right := 0, len(height)-1
-    leftMax, rightMax := 0, 0
+    leftMax, rightMax := height[left], height[right]
     water := 0
-    
+
     for left < right {
         if height[left] <= height[right] {
+            left++
             if height[left] >= leftMax {
                 leftMax = height[left]
             } else {
                 water += leftMax - height[left]
             }
-            left++
         } else {
+            right--
             if height[right] >= rightMax {
                 rightMax = height[right]
             } else {
                 water += rightMax - height[right]
             }
-            right--
         }
     }
     return water
 }`,
 
   javascript: `function trap(height) {
+    if (height.length === 0) return 0;
     let left = 0, right = height.length - 1;
-    let leftMax = 0, rightMax = 0;
+    let leftMax = height[left], rightMax = height[right];
     let water = 0;
-    
+
     while (left < right) {
         if (height[left] <= height[right]) {
+            left++;
             if (height[left] >= leftMax) {
                 leftMax = height[left];
             } else {
                 water += leftMax - height[left];
             }
-            left++;
         } else {
+            right--;
             if (height[right] >= rightMax) {
                 rightMax = height[right];
             } else {
                 water += rightMax - height[right];
             }
-            right--;
         }
     }
     return water;
-}`
-};
+}`};
 
 
 // 单调栈法代码

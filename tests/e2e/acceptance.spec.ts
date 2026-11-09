@@ -135,6 +135,50 @@ test('E2E-011 多算法标签切换并保留教学层', async ({ page }) => {
     await expect(page.locator('.algorithm-teaching-layer')).toBeVisible();
     await expect(page.locator('.algorithm-step-heading')).toContainText(heading);
     await expect(page.locator('.algorithm-step-narration')).not.toBeEmpty();
+    if (tab === 'precomputation' || tab === 'monotonicStack' || tab === 'bruteForce' || tab === 'rowByRow') {
+      const panel = page.locator(`.${tab === 'precomputation' ? 'precomputation-code-panel' : tab === 'monotonicStack' ? 'monotonic-stack-code-panel' : tab === 'bruteForce' ? 'brute-force-code-panel' : 'row-by-row-code-panel'}`);
+      await expect(panel).toBeVisible();
+      await expect(panel.locator('.language-tab')).toHaveCount(4);
+      await expect(panel.locator('.code-line.current')).toHaveCount(1);
+      for (const language of ['Java', 'Python', 'Go', 'JavaScript']) {
+        await panel.getByRole('button', { name: language, exact: true }).click();
+        await expect(panel.locator('.code-line.current')).toHaveCount(1);
+      }
+      const overlap = await page.evaluate((panelSelector) => {
+        const panelRect = document.querySelector(panelSelector)?.getBoundingClientRect();
+        const canvasRect = document.querySelector('svg.d3-component')?.getBoundingClientRect();
+        if (!panelRect || !canvasRect) return 1;
+        const width = Math.max(0, Math.min(panelRect.right, canvasRect.right) - Math.max(panelRect.left, canvasRect.left));
+        const height = Math.max(0, Math.min(panelRect.bottom, canvasRect.bottom) - Math.max(panelRect.top, canvasRect.top));
+        return width * height / (canvasRect.width * canvasRect.height);
+      }, `.${tab === 'precomputation' ? 'precomputation-code-panel' : tab === 'monotonicStack' ? 'monotonic-stack-code-panel' : tab === 'bruteForce' ? 'brute-force-code-panel' : 'row-by-row-code-panel'}`);
+      expect(overlap).toBeLessThan(0.1);
+      if (tab === 'precomputation') {
+        const axis = page.locator('svg.d3-component .layer-chart-persistent .x-axis');
+        await axis.evaluate(element => element.setAttribute('data-retained-check', 'axis-static'));
+        await page.getByTitle('下一步 (→)').click();
+        await page.waitForTimeout(40);
+        await expect(axis).toHaveAttribute('data-retained-check', 'axis-static');
+      }
+      const plotLayer = page.locator('svg.d3-component .layer-transient-plot');
+      await expect(plotLayer).toHaveCount(1);
+      await plotLayer.evaluate(element => element.setAttribute('data-retained-check', 'stable'));
+      const transientCount = await plotLayer.locator('> *').count();
+      for (let i = 0; i < 3; i++) {
+        await page.getByTitle('下一步 (→)').click();
+        await page.waitForTimeout(35);
+      }
+      await page.getByTitle('上一步 (←)').click();
+      await expect(plotLayer).toHaveCount(1);
+      await expect(plotLayer).toHaveAttribute('data-retained-check', 'stable');
+      await expect(page.locator('svg.d3-component .height-column')).toHaveCount(12);
+      await expect(plotLayer.locator('> *')).toHaveCount(transientCount);
+      const layerOrder = await page.locator('svg.d3-component').evaluate(svg => Array.from(svg.children)
+        .filter(element => ['layer-terrain-persistent', 'layer-water-persistent', 'layer-transient-plot'].includes(element.getAttribute('class') || ''))
+        .map(element => element.getAttribute('class')));
+      expect(layerOrder.indexOf('layer-terrain-persistent')).toBeLessThan(layerOrder.indexOf('layer-transient-plot'));
+      expect(layerOrder.indexOf('layer-water-persistent')).toBeLessThan(layerOrder.indexOf('layer-transient-plot'));
+    }
   }
   await page.getByTestId('tab-button-twoPointers').click();
   await expect(page.locator('.layer-bars .bar')).toHaveCount(12);
@@ -161,5 +205,6 @@ test('E2E-015 样式不包含紫色主题', async ({ page }) => {
   const styles = await page.locator('style').allTextContents();
   const sourceMapFreeStyles = styles.filter(text => !text.includes('sourceMappingURL'));
   expect(sourceMapFreeStyles.join('\n')).not.toMatch(/\bpurple\b/i);
-  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('fill', 'rgb(27, 175, 122)');
+  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('fill', 'rgb(63, 139, 119)');
+  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('stroke', 'rgb(23, 108, 85)');
 });

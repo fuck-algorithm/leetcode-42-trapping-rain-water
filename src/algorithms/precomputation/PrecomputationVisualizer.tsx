@@ -3,8 +3,12 @@ import * as d3 from 'd3';
 import usePrecomputationSteps, { AnimationStep } from './usePrecomputationSteps';
 import AnimationControls from '../../components/common/AnimationControls';
 import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
-import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { clearTransientPlotLayer, createTransientPlotLayer, getTransientContentLayer, getPersistentChartLayer, getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
 import { motionDuration } from '../twoPointers/motion';
+import { resolveHeightDomain } from '../shared/visualDomain';
+import { getBoundCodeLine } from '../shared/codeBinding';
+import PrecomputationCodePanel from './PrecomputationCodePanel';
+import './AlgorithmCodePanel.css';
 import '../shared/rainwater.css';
 
 interface PrecomputationVisualizerProps {
@@ -71,10 +75,9 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
     if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
       const svgNode = d3Container.current;
       const svgElement = d3.select(svgNode);
-      removeTransientSvgContent(svgElement);
       
       // 设置尺寸，减小边距
-      const controlsHeight = 50; // AnimationControls的高度
+      const controlsHeight = 78; // 外层标题栏 34px 与播放控制 44px
       const margin = { top: 8, right: 15, bottom: 20, left: 25 };
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
@@ -82,20 +85,35 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       const { leftMax, rightMax, water, totalWater, currentIndex, phase } = currentStep;
       
       // Find the maximum height to set the scale
-      const maxHeight = Math.max(
-        ...heights, 
-        ...leftMax, 
-        ...rightMax, 
+      const [, heightDomainMax] = resolveHeightDomain([
+        ...heights,
+        ...leftMax,
+        ...rightMax,
         ...heights.map((h, i) => h + (water[i] || 0))
-      );
+      ]);
+      const maxHeight = heightDomainMax;
       
       // Create the SVG container
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
-      const svg = svgElement
+      svgElement
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom);
       const plotTransform = `translate(${margin.left},${margin.top})`;
-      const plot = svg.append('g').attr('transform', plotTransform);
+      clearTransientPlotLayer(svgElement, 'precomputation');
+      const plot = createTransientPlotLayer(svgElement, 'precomputation', plotTransform);
+      const dynamicLayer = getTransientContentLayer(plot as any);
+      const chart = getPersistentChartLayer(svgElement, 'precomputation', plotTransform);
+      const staticAxes = chart.selectAll<SVGGElement, null>('.layer-static-axes').data([null]).join('g').attr('class', 'layer-static-axes').attr('data-static-layer', 'true');
+      const staticGuides = chart.selectAll<SVGGElement, null>('.layer-static-guides').data([null]).join('g').attr('class', 'layer-static-guides').attr('data-static-layer', 'true');
+      const staticLegend = chart.selectAll<SVGGElement, null>('.layer-static-legend').data([null]).join(enter => {
+        const group = enter.append('g').attr('class', 'layer-static-legend').attr('data-static-layer', 'true');
+        group.append('rect').attr('class', 'legend-background').attr('x', -5).attr('y', -5).attr('width', 70).attr('height', 40).attr('fill', 'rgba(255,255,255,.95)').attr('stroke', '#e0e0e0').attr('rx', 4);
+        group.append('rect').attr('class', 'legend-height').attr('width', 10).attr('height', 10).attr('fill', '#1a1a1a').attr('stroke', '#333');
+        group.append('text').attr('class', 'legend-height-label').attr('x', 14).attr('y', 8).attr('fill', '#333').style('font-size', '0.65em').style('font-weight', '500').text('高度');
+        group.append('rect').attr('class', 'legend-water').attr('y', 14).attr('width', 10).attr('height', 10).attr('fill', '#268fc2');
+        group.append('text').attr('class', 'legend-water-label').attr('x', 14).attr('y', 22).attr('fill', '#333').style('font-size', '0.65em').style('font-weight', '500').text('雨水');
+        return group;
+      }).attr('transform', `translate(${width - 80},5)`);
       
       // 自适应单元宽度，根据数组长度动态计算
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
@@ -121,28 +139,18 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       }
       
       // Add X axis
-      plot.append('g')
-        .attr('transform', `translate(0,${height})`)
-        .call(xAxis)
-        .append('text')
-        .attr('x', width / 2)
-        .attr('y', margin.bottom - 5)
-        .attr('fill', 'white')
-        .attr('text-anchor', 'middle')
-        .style('font-size', '0.7em')
-        .text('位置');
-      
-      // Add Y axis
-      plot.append('g')
-        .call(d3.axisLeft(yScale).ticks(5))
-        .append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', -margin.left + 8)
-        .attr('x', -height / 2)
-        .attr('fill', 'white')
-        .attr('text-anchor', 'middle')
-        .style('font-size', '0.7em')
-        .text('高度');
+      const xAxisGroup = staticAxes.selectAll<SVGGElement, null>('.x-axis').data([null]).join('g').attr('class', 'x-axis')
+        .attr('transform', `translate(0,${height})`);
+      xAxisGroup.call(xAxis);
+      xAxisGroup.selectAll('.axis-label').data([null]).join('text').attr('class', 'axis-label')
+        .attr('x', width / 2).attr('y', margin.bottom - 5).attr('fill', '#687b76')
+        .attr('text-anchor', 'middle').style('font-size', '0.7em').text('位置');
+
+      const yAxisGroup = staticAxes.selectAll<SVGGElement, null>('.y-axis').data([null]).join('g').attr('class', 'y-axis');
+      yAxisGroup.call(d3.axisLeft(yScale).ticks(5));
+      yAxisGroup.selectAll('.axis-label').data([null]).join('text').attr('class', 'axis-label')
+        .attr('transform', 'rotate(-90)').attr('y', -margin.left + 8).attr('x', -height / 2)
+        .attr('fill', '#687b76').attr('text-anchor', 'middle').style('font-size', '0.7em').text('高度');
       
       const terrainLayer = getPersistentTerrainLayer(svgElement, 'precomputation', plotTransform);
       const columns: HeightColumn[] = heights.map((value, index) => ({
@@ -165,86 +173,37 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         surface: true
       })), motionDuration(speed, reducedMotion), `precomputation:${heights.join(',')}`, reducedMotion);
       
-      // Draw left max line (只在数组长度适中时绘制)
       if (heights.length <= 30) {
-      const leftMaxLine = d3.line<number>()
-        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-        .y(d => yScale(d));
-      
-      plot.append('path')
-        .datum(leftMax)
-        .attr('fill', 'none')
-        .attr('stroke', '#ff7043')
-          .attr('stroke-width', 1.5)
-        .attr('stroke-dasharray', phase === 'leftScan' ? '5,5' : '3,3')
-        .attr('d', leftMaxLine);
-      
-      // Draw right max line
-      const rightMaxLine = d3.line<number>()
-        .x((_, i) => (xScale(i.toString())! + xScale.bandwidth() / 2))
-        .y(d => yScale(d));
-      
-      plot.append('path')
-        .datum(rightMax)
-        .attr('fill', 'none')
-        .attr('stroke', '#4caf50')
-          .attr('stroke-width', 1.5)
-        .attr('stroke-dasharray', phase === 'rightScan' ? '5,5' : '3,3')
-        .attr('d', rightMaxLine);
+        const line = d3.line<number>()
+          .x((_, index) => xScale(String(index))! + xScale.bandwidth() / 2)
+          .y(value => yScale(value));
+        const leftData = [{ id: 'left-max-line', values: leftMax, stroke: '#ff7043', active: phase === 'leftScan' }];
+        const leftJoin = staticGuides.selectAll<SVGPathElement, typeof leftData[number]>('path.left-max-line')
+          .data(leftData, item => item.id);
+        leftJoin.exit().remove();
+        leftJoin.enter().append('path').attr('class', 'left-max-line').merge(leftJoin)
+          .attr('fill', 'none').attr('stroke', item => item.stroke).attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', item => item.active ? '5,5' : '3,3').attr('d', item => line(item.values));
+
+        const rightData = [{ id: 'right-max-line', values: rightMax, stroke: '#4caf50', active: phase === 'rightScan' }];
+        const rightJoin = staticGuides.selectAll<SVGPathElement, typeof rightData[number]>('path.right-max-line')
+          .data(rightData, item => item.id);
+        rightJoin.exit().remove();
+        rightJoin.enter().append('path').attr('class', 'right-max-line').merge(rightJoin)
+          .attr('fill', 'none').attr('stroke', item => item.stroke).attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', item => item.active ? '5,5' : '3,3').attr('d', item => line(item.values));
+      } else {
+        staticGuides.selectAll('path.left-max-line,path.right-max-line').remove();
       }
       
-      // 简化图例，保持必要信息
-      const legend = plot.append('g')
-        .attr('transform', `translate(${width - 80}, 5)`);
-      
-      // 图例背景
-      legend.append('rect')
-        .attr('x', -5)
-        .attr('y', -5)
-        .attr('width', 70)
-        .attr('height', 40)
-        .attr('fill', 'rgba(255, 255, 255, 0.95)')
-        .attr('stroke', '#e0e0e0')
-        .attr('stroke-width', 1)
-        .attr('rx', 4);
-      
-      // Height bar legend
-      legend.append('rect')
-        .attr('width', 10)
-        .attr('height', 10)
-        .attr('fill', '#1a1a1a')
-        .attr('stroke', '#333')
-        .attr('stroke-width', 1);
-      
-      legend.append('text')
-        .attr('x', 14)
-        .attr('y', 8)
-        .attr('fill', '#333')
-        .style('font-size', '0.65em')
-        .style('font-weight', '500')
-        .text('高度');
-      
-      // Water bar legend
-      legend.append('rect')
-        .attr('y', 14)
-        .attr('width', 10)
-        .attr('height', 10)
-        .attr('fill', '#5B9BD5');
-      
-      legend.append('text')
-        .attr('x', 14)
-        .attr('y', 22)
-        .attr('fill', '#333')
-        .style('font-size', '0.65em')
-        .style('font-weight', '500')
-        .text('雨水');
+      staticLegend.attr('transform', `translate(${width - 80}, 5)`);
       
       // Add water amount
-      plot.append('text')
+      dynamicLayer.append('text')
         .attr('x', width / 2)
         .attr('y', 0)
         .attr('text-anchor', 'middle')
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .style('font-size', '0.75em')
         .text(`总雨水量: ${totalWater} 单位`);
       
@@ -257,11 +216,11 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         case 'complete': phaseText = '计算完成'; break;
       }
       
-      plot.append('text')
+      dynamicLayer.append('text')
         .attr('x', width / 2)
         .attr('y', height + margin.bottom - 5)
         .attr('text-anchor', 'middle')
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .style('font-size', '0.7em')
         .text(phaseText);
     }
@@ -313,11 +272,12 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer operation={precomputationOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '扫描数组并根据左右边界最大值确定蓄水量。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '索引', value: currentStep.currentIndex }, { label: '阶段', value: currentStep.phase === 'leftScan' ? '左扫' : currentStep.phase === 'rightScan' ? '右扫' : '求水' }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={precomputationOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '扫描数组并根据左右边界最大值确定蓄水量。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '索引', value: currentStep.currentIndex }, { label: '阶段', value: currentStep.phase === 'leftScan' ? '左扫' : currentStep.phase === 'rightScan' ? '右扫' : '求水' }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
         />
+        {currentStep && <div className="precomputation-code-panel"><PrecomputationCodePanel step={currentStep} /></div>}
         <AnimationControls
           isPlaying={isPlaying}
           onPlay={togglePlay}

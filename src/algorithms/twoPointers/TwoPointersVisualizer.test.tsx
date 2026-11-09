@@ -12,8 +12,12 @@ describe('TwoPointersVisualizer teaching layer', () => {
   it('shows the operation, causal narration, and bar calculation on hover', async () => {
     render(<TwoPointersVisualizer heights={[2, 0, 2]} />);
     await act(async () => { await Promise.resolve(); });
-    expect(screen.getByText(/初始化 · Step/)).toBeInTheDocument();
-    expect(screen.getByText('初始化，因为边界决定水位。')).toBeInTheDocument();
+    expect(screen.getByText(/从两端开始 · Step/)).toBeInTheDocument();
+    expect(screen.getByText('从左右两端开始。水面高度由两边较矮的边界决定。')).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(screen.getByRole('img', { name: '双指针接雨水动画' }).querySelector('.canvas-metrics')).toHaveTextContent('累计接水 2 格');
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(screen.getByRole('img', { name: '双指针接雨水动画' }).querySelector('.layer-index-axis')).toBeInTheDocument();
     // eslint-disable-next-line testing-library/no-node-access
     const bar = screen.getByRole('img', { name: '双指针接雨水动画' }).querySelector('[data-node-id="bar-1"]') as Element;
     fireEvent.mouseEnter(bar);

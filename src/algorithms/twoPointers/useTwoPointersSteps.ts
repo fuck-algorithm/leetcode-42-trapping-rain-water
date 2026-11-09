@@ -42,26 +42,16 @@ export interface TwoPointersStep {
  * 基于 algorithmCodes.ts 中的代码结构
  */
 const CODE_LINE_MAPPINGS = {
-  // 初始化变量
-  init: createCodeLineBinding([2, 3, 4], [2, 3, 4], [2, 3, 4], [2, 3, 4]),
-  // while 循环条件
-  whileCondition: createCodeLineBinding(6, 6, 6, 6),
-  // 比较 height[left] <= height[right]
-  compare: createCodeLineBinding(7, 7, 7, 7),
-  // 更新 leftMax
-  updateLeftMax: createCodeLineBinding([8, 9], [8, 9], [8, 9], [8, 9]),
-  // 计算左侧水量
-  calcLeftWater: createCodeLineBinding([10, 11], [10, 11], [10, 11], [10, 11]),
-  // left++
-  leftIncrement: createCodeLineBinding(13, 12, 13, 13),
-  // 更新 rightMax
-  updateRightMax: createCodeLineBinding([15, 16], [14, 15], [15, 16], [15, 16]),
-  // 计算右侧水量
-  calcRightWater: createCodeLineBinding([17, 18], [16, 17], [17, 18], [17, 18]),
-  // right--
-  rightDecrement: createCodeLineBinding(20, 18, 20, 20),
-  // 返回结果
-  returnResult: createCodeLineBinding(23, 21, 23, 23),
+  init: createCodeLineBinding([2, 3, 4, 5], [2, 3, 4, 5, 6], [2, 3, 4, 5], [2, 3, 4, 5]),
+  emptyInput: createCodeLineBinding(2, 2, 2, 2),
+  compare: createCodeLineBinding(7, 8, 8, 8),
+  leftIncrement: createCodeLineBinding(9, 10, 9, 9),
+  updateLeftMax: createCodeLineBinding([10, 11], [11, 12], [10, 11], [10, 11]),
+  calcLeftWater: createCodeLineBinding([12, 13], [13, 14], [12, 13], [12, 13]),
+  rightDecrement: createCodeLineBinding(16, 16, 16, 16),
+  updateRightMax: createCodeLineBinding([17, 18], [17, 18], [17, 18], [17, 18]),
+  calcRightWater: createCodeLineBinding([19, 20], [19, 20], [19, 20], [19, 20]),
+  returnResult: createCodeLineBinding(24, 22, 24, 24),
 };
 
 function buildNarration(step: TwoPointersStep, previous: string): string {
@@ -71,17 +61,17 @@ function buildNarration(step: TwoPointersStep, previous: string): string {
       sentence = `初始化：指针从两端夹住数组，因为每个位置的水位由左右边界中较矮的一侧限制。`;
       break;
     case 'compare':
-      sentence = `比较位置 ${step.left} 的高度 ${step.decision?.leftHeight} 与位置 ${step.right} 的高度 ${step.decision?.rightHeight}，因为较矮边界一侧的水量已可确定。`;
+      sentence = `比较左端 ${step.left}（高 ${step.decision?.leftHeight}）与右端 ${step.right}（高 ${step.decision?.rightHeight}）；${step.decision?.reason ?? '处理较矮的一端后，另一侧边界已足以确定该列水量。'}`;
       break;
     case 'moveLeft':
       sentence = step.currentFill
-        ? `左指针处理位置 ${step.left} 并加入 ${step.currentFill} 单位水，因为左侧最高墙高于当前柱。`
-        : `左指针处理位置 ${step.left} 并更新左侧最高墙为 ${step.leftMax}，因为当前柱不低于旧边界。`;
+        ? `左侧第 ${step.left} 列低于已确认的左边界 ${step.leftMax}，填入 ${step.currentFill} 格水；累计为 ${step.totalWater} 格。`
+        : `左侧第 ${step.left} 列达到新的边界高度 ${step.leftMax}，这一列不存水但刷新了左侧最大值。`;
       break;
     case 'moveRight':
       sentence = step.currentFill
-        ? `右指针处理位置 ${step.right} 并加入 ${step.currentFill} 单位水，因为右侧最高墙高于当前柱。`
-        : `右指针处理位置 ${step.right} 并更新右侧最高墙为 ${step.rightMax}，因为当前柱不低于旧边界。`;
+        ? `右侧第 ${step.right} 列低于已确认的右边界 ${step.rightMax}，填入 ${step.currentFill} 格水；累计为 ${step.totalWater} 格。`
+        : `右侧第 ${step.right} 列达到新的边界高度 ${step.rightMax}，这一列不存水但刷新了右侧最大值。`;
       break;
     default:
       sentence = `两指针在位置 ${step.left} 相遇，最终累计 ${step.totalWater} 单位雨水，因为所有可处理位置均已确定。`;
@@ -103,7 +93,13 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
   useEffect(() => {
     const n = heights.length;
     if (n === 0) {
-      setSteps([]);
+      setSteps([{
+        heights: [], left: 0, right: -1, leftMax: 0, rightMax: 0,
+        water: [], totalWater: 0, phase: 'complete',
+        description: '输入为空，没有柱子需要扫描，因此直接返回 0 格雨水。',
+        operation: 'done', narration: '数组长度为 0，不读取端点、不进入循环，答案为 0。',
+        anchorIds: ['empty-input'], codeLineBindings: CODE_LINE_MAPPINGS.emptyInput
+      }]);
       return;
     }
 
@@ -125,7 +121,7 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
       water: [...water],
       totalWater: 0,
       phase: 'init',
-      description: `初始化：左指针在位置${left}，右指针在位置${right}，leftMax=${leftMax}，rightMax=${rightMax}`,
+      description: `初始化左右指针与边界高度，当前还没有处理任何柱子。`,
       codeLineBindings: CODE_LINE_MAPPINGS.init
     });
 

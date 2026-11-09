@@ -3,8 +3,12 @@ import * as d3 from 'd3';
 import useRowByRowSteps, { RowByRowStep } from './useRowByRowSteps';
 import AnimationControls from '../../components/common/AnimationControls';
 import VisualizationTeachingLayer from '../shared/VisualizationTeachingLayer';
-import { getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, removeTransientSvgContent, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
+import { clearTransientPlotLayer, createTransientPlotLayer, getPersistentTerrainLayer, getPersistentWaterLayer, HeightColumn, renderHeightColumns, renderWaterCells } from '../shared/rainwater';
 import { motionDuration } from '../twoPointers/motion';
+import { resolveHeightDomain } from '../shared/visualDomain';
+import { getBoundCodeLine } from '../shared/codeBinding';
+import RowByRowCodePanel from './RowByRowCodePanel';
+import './AlgorithmCodePanel.css';
 import '../shared/rainwater.css';
 import './RowByRowVisualizer.css';
 
@@ -72,16 +76,16 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       const { currentRow, currentCol, waterMatrix, totalWater, phase, tempSum, rowWater } = currentStep;
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
-      const maxHeight = Math.max(...heights);
+      const [, maxHeight] = resolveHeightDomain(heights);
       
       const svgElement = d3.select(d3Container.current);
-      removeTransientSvgContent(svgElement);
       
-      const svg = svgElement
+      svgElement
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom);
       const plotTransform = `translate(${margin.left},${margin.top})`;
-      const plot = svg.append('g').attr('transform', plotTransform);
+      clearTransientPlotLayer(svgElement, 'row-by-row');
+      const plot = createTransientPlotLayer(svgElement, 'row-by-row', plotTransform);
       
       const barPadding = heights.length > 20 ? 0.05 : 0.1;
       
@@ -102,7 +106,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         .attr('transform', 'rotate(-90)')
         .attr('y', -margin.left + 8)
         .attr('x', -height / 2)
-        .attr('fill', 'white')
+        .attr('fill', '#687b76')
         .attr('text-anchor', 'middle')
         .style('font-size', '0.7em')
         .text('高度');
@@ -159,7 +163,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       const reducedMotionForColumns = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
       const terrainLayer = getPersistentTerrainLayer(svgElement, 'row-by-row', plotTransform);
       const columns: HeightColumn[] = heights.map((value, index) => ({
-        id: `column-${index}`, index, value, x: xScale(index.toString())!, y: height,
+        id: `column-${index}`, index, value, x: xScale(index.toString())!, y: yScale(value),
         width: xScale.bandwidth(), height: height - yScale(value), stroke: '#333', strokeWidth: 0.5
       }));
       renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotionForColumns), reducedMotionForColumns);
@@ -211,9 +215,8 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       const legendItems = [
         { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
-        { color: '#5B9BD5', label: '已确认水', y: 14 },
-        { color: '#7EC8E3', label: '当前层水', y: 28 },
-        { color: '#ff7043', label: '当前位置', y: 42 }
+        { color: '#268fc2', label: '积水格', y: 14 },
+        { color: '#ff7043', label: '当前位置', y: 28 }
       ];
       
       legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
@@ -238,55 +241,32 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       const statePanel = plot.append('g')
         .attr('class', 'state-panel')
         .attr('transform', `translate(0, -65)`);
-      
-      statePanel.append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('width', width)
-        .attr('height', 55)
-        .attr('fill', 'rgba(255, 255, 255, 0.95)')
-        .attr('stroke', '#FF9800')
-        .attr('stroke-width', 2)
-        .attr('rx', 5);
-      
-      statePanel.append('text')
-        .attr('x', width / 2)
-        .attr('y', 18)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#E65100')
-        .attr('font-weight', 'bold')
-        .style('font-size', '1em')
+      statePanel.append('rect').attr('width', width).attr('height', 55)
+        .attr('fill', 'rgba(255, 255, 255, 0.95)').attr('stroke', '#FF9800').attr('stroke-width', 2).attr('rx', 5);
+      statePanel.append('text').attr('x', width / 2).attr('y', 18).attr('text-anchor', 'middle')
+        .attr('fill', '#E65100').attr('font-weight', 'bold').style('font-size', '1em')
         .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
-      
-      // 根据宽度动态计算变量位置
+
       const varSpacing = Math.min(100, width / 6);
       const variables = [
-        { label: '当前层', value: currentRow, color: '#FF9800', x: varSpacing * 0.5 },
-        { label: '当前列', value: currentCol >= 0 ? currentCol : '-', color: '#ff7043', x: varSpacing * 1.5 },
-        { label: '临时水量', value: tempSum, color: '#F57C00', x: varSpacing * 2.7 },
-        { label: '本层水量', value: rowWater, color: '#4CAF50', x: varSpacing * 4 },
-        { label: '总水量', value: totalWater, color: '#1976D2', x: width - varSpacing * 0.8 }
+        { id: 'row', label: '当前层', value: currentRow, color: '#FF9800', x: varSpacing * 0.5 },
+        { id: 'col', label: '当前列', value: currentCol >= 0 ? currentCol : '-', color: '#ff7043', x: varSpacing * 1.5 },
+        { id: 'temp', label: '临时水量', value: tempSum, color: '#F57C00', x: varSpacing * 2.7 },
+        { id: 'row-water', label: '本层水量', value: rowWater, color: '#4CAF50', x: varSpacing * 4 },
+        { id: 'total-water', label: '总水量', value: totalWater, color: '#1976D2', x: width - varSpacing * 0.8 },
       ];
-      
-      variables.forEach(v => {
-        const varGroup = statePanel.append('g')
-          .attr('transform', `translate(${v.x}, 35)`);
-        
-        varGroup.append('text')
-          .attr('x', 0)
-          .attr('y', 0)
-          .attr('fill', '#666')
-          .style('font-size', '0.7em')
-          .text(`${v.label}:`);
-        
-        varGroup.append('text')
-          .attr('x', 0)
-          .attr('y', 12)
-          .attr('fill', v.color)
-          .attr('font-weight', 'bold')
-          .style('font-size', '1em')
-          .text(v.value);
-      });
+      statePanel.selectAll<SVGGElement, null>('.state-title').data([null]).join('text').attr('class', 'state-title')
+        .attr('x', width / 2).attr('y', 18).attr('text-anchor', 'middle').attr('fill', '#E65100').attr('font-weight', 'bold').style('font-size', '1em')
+        .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
+      const variableJoin = statePanel.selectAll<SVGGElement, typeof variables[number]>('g.variable-value')
+        .data(variables, variable => variable.id);
+      variableJoin.exit().remove();
+      const variableEnter = variableJoin.enter().append('g').attr('class', 'variable-value');
+      variableEnter.append('text').attr('class', 'variable-label').attr('y', 0).attr('fill', '#666').style('font-size', '0.7em');
+      variableEnter.append('text').attr('class', 'variable-current').attr('y', 12).attr('font-weight', 'bold').style('font-size', '1em');
+      const variableMerged = variableEnter.merge(variableJoin).attr('transform', variable => `translate(${variable.x}, 35)`);
+      variableMerged.select('.variable-label').text(variable => `${variable.label}:`);
+      variableMerged.select('.variable-current').attr('fill', variable => variable.color).text(variable => variable.value);
     }
   }, [heights, currentStep, dimensions, currentStepIndex, totalSteps, speed]);
 
@@ -333,7 +313,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
             <p style={{ fontSize: '0.7em', marginTop: '8px', color: '#FFC107' }}>
               <strong>⏱ 时间复杂度：</strong>O(m*n) - m为最大高度，n为数组长度
               <br />
-              <strong>💾 空间复杂度：</strong>O(1) - 只用了几个变量
+              <strong>💾 辅助空间：</strong>O(1)（算法本身）；逐帧画布另存水位快照，输入较大时内存会随动画步骤增长。
               <br />
               <strong>⚠️ 注意：</strong>当最大高度很大时效率较低
             </p>
@@ -341,11 +321,12 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer operation={rowOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '当前层', value: currentStep.currentRow }, { label: '临时水量', value: currentStep.tempSum }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={rowOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '当前层', value: currentStep.currentRow }, { label: '临时水量', value: currentStep.tempSum }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
         />
+        {currentStep && <div className="row-by-row-code-panel"><RowByRowCodePanel step={currentStep} /></div>}
         <AnimationControls
           isPlaying={isPlaying}
           onPlay={togglePlay}
