@@ -40,6 +40,9 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
     setProgress,
     reset
   } = useRowByRowSteps({ heights, speed });
+  const rowByRowLabel = heights.length > 0 && heights.length * Math.max(...heights) ** 2 > 1000000
+    ? '按行演示需逐层扫描：当前输入太大，切换双数组法或双指针法可保持流畅。'
+    : `每次扫描一层高度：确认两堵墙之间的水格；本方法约需 ${Math.max(...heights, 0)} × ${heights.length} 次检查。`;
 
   // 监听容器尺寸变化
   useEffect(() => {
@@ -69,12 +72,11 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
 
   useEffect(() => {
     if (heights && d3Container.current && currentStep && dimensions.width > 0 && dimensions.height > 0) {
-      const controlsHeight = 120;
-      const margin = { top: 80, right: 20, bottom: 30, left: 40 };
+      const margin = { top: 46, right: 32, bottom: 42, left: 52 };
       const width = dimensions.width - margin.left - margin.right;
-      const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
+      const height = dimensions.height - margin.top - margin.bottom;
       
-      const { currentRow, currentCol, waterMatrix, totalWater, phase, tempSum, rowWater } = currentStep;
+      const { currentRow, currentCol, waterMatrix, phase } = currentStep;
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
       const [, maxHeight] = resolveHeightDomain(heights);
       
@@ -101,7 +103,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       
       // Y轴
       plot.append('g')
-        .call(d3.axisLeft(yScale).ticks(maxHeight))
+        .call(d3.axisLeft(yScale).ticks(Math.min(6, Math.max(2, Math.floor(height / 70)))))
         .append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', -margin.left + 8)
@@ -133,27 +135,23 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       }
       
       const waterCells: { id: string; x: number; y: number; width: number; height: number; highlighted: boolean; surface: boolean; pending: boolean }[] = [];
-      // 绘制柱子（按单元格绘制，便于显示水）
+      for (let row = 0; row < waterMatrix.length; row++) {
+        for (let col = 0; col < heights.length; col++) {
+          if (!waterMatrix[row][col] || row + 1 <= heights[col]) continue;
+          const pending = !currentStep.confirmedWaterMatrix?.[row]?.[col] && phase !== 'complete';
+          const currentFillRows = !pending && col === currentCol && row + 1 === currentRow && currentStep.phase === 'scanRow';
+          const barX = xScale(col.toString())!;
+          const barWidth = xScale.bandwidth();
+          waterCells.push({
+            id: `water-${col}-${row + 1}`, x: barX, y: yScale(row + 1), width: barWidth,
+            height: Math.max(0.5, yScale(row) - yScale(row + 1)),
+            highlighted: currentFillRows, surface: row === waterMatrix.length - 1 || !waterMatrix[row + 1]?.[col], pending
+          });
+        }
+      }
       for (let col = 0; col < heights.length; col++) {
         const barX = xScale(col.toString())!;
         const barWidth = xScale.bandwidth();
-        
-        // 绘制每个高度单元
-        for (let row = 1; row <= maxHeight; row++) {
-          const cellY = yScale(row);
-          const cellHeight = yScale(row - 1) - yScale(row);
-          
-          if (row > heights[col] && waterMatrix[row - 1] && waterMatrix[row - 1][col] === 1) {
-            waterCells.push({
-              id: `water-${col}-${row}`, x: barX, y: cellY, width: barWidth, height: cellHeight,
-              highlighted: row === currentRow && col === currentCol,
-              surface: !waterMatrix[row] || waterMatrix[row][col] !== 1,
-              pending: phase !== 'complete' && (!waterMatrix[row] || waterMatrix[row][col] !== 1)
-            });
-          }
-        }
-        
-        // 当前列指示器
         if (col === currentCol && phase === 'scanRow') {
           plot.append('polygon')
             .attr('points', `${barX + barWidth / 2 - 6},${height + 15} ${barX + barWidth / 2 + 6},${height + 15} ${barX + barWidth / 2},${height + 5}`)
@@ -169,8 +167,8 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotionForColumns), reducedMotionForColumns);
       terrainLayer.raise();
       const waterLayer = getPersistentWaterLayer(svgElement, 'row-by-row', plotTransform);
-      const pendingDuration = reducedMotion ? 0 : Math.max(80, motionDuration(speed, false) * 0.7);
-      const visibleWater = phase === 'complete' ? waterCells.map(cell => ({ ...cell, pending: false })) : waterCells;
+      const pendingDuration = reducedMotion ? 0 : motionDuration(speed, false);
+      const visibleWater = waterCells.map(cell => ({ ...cell, pending: phase === 'scanRow' && cell.id.endsWith(`-${currentRow}`) }));
       renderWaterCells(waterLayer, visibleWater, pendingDuration, `rowByRow:${heights.join(',')}`, reducedMotion);
 
       // 索引标签
@@ -198,75 +196,41 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         });
       }
       
-      // 图例
+      // 图例位于绘图区外的状态栏，避免遮挡水格与柱体。
       const legend = plot.append('g')
-        .attr('transform', `translate(${width - 100}, 10)`);
+        .attr('transform', `translate(0, ${height + 18})`);
       
       // 图例背景
       legend.append('rect')
         .attr('x', -5)
         .attr('y', -5)
         .attr('width', 95)
-        .attr('height', 65)
+        .attr('height', 22)
         .attr('fill', 'rgba(255, 255, 255, 0.95)')
         .attr('stroke', '#e0e0e0')
         .attr('stroke-width', 1)
         .attr('rx', 4);
       
       const legendItems = [
-        { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
-        { color: '#268fc2', label: '积水格', y: 14 },
-        { color: '#ff7043', label: '当前位置', y: 28 }
+        { color: '#718991', label: '地面', y: 0, stroke: '#52666c' },
+        { color: '#268fc2', label: '已确认水格', y: 0 },
+        { color: '#dfaa45', label: '当前扫描', y: 0 }
       ];
       
-      legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
+      legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }, index: number) => {
+        const itemX = index * Math.min(142, width / 3);
         legend.append('rect')
-          .attr('y', item.y)
-          .attr('width', 12)
-          .attr('height', 12)
+          .attr('x', itemX).attr('y', item.y)
+          .attr('width', 12).attr('height', 12)
           .attr('fill', item.color)
           .attr('stroke', item.stroke || 'none')
           .attr('stroke-width', item.stroke ? 1 : 0);
-        
         legend.append('text')
-          .attr('x', 16)
-          .attr('y', item.y + 9)
-          .attr('fill', '#333')
-          .style('font-size', '0.65em')
-          .style('font-weight', '500')
+          .attr('x', itemX + 16).attr('y', item.y + 9)
+          .attr('fill', '#333').style('font-size', '0.65em').style('font-weight', '500')
           .text(item.label);
       });
       
-      // 顶部状态面板
-      const statePanel = plot.append('g')
-        .attr('class', 'state-panel')
-        .attr('transform', `translate(0, -65)`);
-      statePanel.append('rect').attr('width', width).attr('height', 55)
-        .attr('fill', 'rgba(255, 255, 255, 0.95)').attr('stroke', '#FF9800').attr('stroke-width', 2).attr('rx', 5);
-      statePanel.append('text').attr('x', width / 2).attr('y', 18).attr('text-anchor', 'middle')
-        .attr('fill', '#E65100').attr('font-weight', 'bold').style('font-size', '1em')
-        .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
-
-      const varSpacing = Math.min(100, width / 6);
-      const variables = [
-        { id: 'row', label: '当前层', value: currentRow, color: '#FF9800', x: varSpacing * 0.5 },
-        { id: 'col', label: '当前列', value: currentCol >= 0 ? currentCol : '-', color: '#ff7043', x: varSpacing * 1.5 },
-        { id: 'temp', label: '临时水量', value: tempSum, color: '#F57C00', x: varSpacing * 2.7 },
-        { id: 'row-water', label: '本层水量', value: rowWater, color: '#4CAF50', x: varSpacing * 4 },
-        { id: 'total-water', label: '总水量', value: totalWater, color: '#1976D2', x: width - varSpacing * 0.8 },
-      ];
-      statePanel.selectAll<SVGGElement, null>('.state-title').data([null]).join('text').attr('class', 'state-title')
-        .attr('x', width / 2).attr('y', 18).attr('text-anchor', 'middle').attr('fill', '#E65100').attr('font-weight', 'bold').style('font-size', '1em')
-        .text(`当前状态 | 步骤 ${currentStepIndex + 1}/${totalSteps}`);
-      const variableJoin = statePanel.selectAll<SVGGElement, typeof variables[number]>('g.variable-value')
-        .data(variables, variable => variable.id);
-      variableJoin.exit().remove();
-      const variableEnter = variableJoin.enter().append('g').attr('class', 'variable-value');
-      variableEnter.append('text').attr('class', 'variable-label').attr('y', 0).attr('fill', '#666').style('font-size', '0.7em');
-      variableEnter.append('text').attr('class', 'variable-current').attr('y', 12).attr('font-weight', 'bold').style('font-size', '1em');
-      const variableMerged = variableEnter.merge(variableJoin).attr('transform', variable => `translate(${variable.x}, 35)`);
-      variableMerged.select('.variable-label').text(variable => `${variable.label}:`);
-      variableMerged.select('.variable-current').attr('fill', variable => variable.color).text(variable => variable.value);
     }
   }, [heights, currentStep, dimensions, currentStepIndex, totalSteps, speed]);
 
@@ -283,7 +247,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
             <span className="toggle-icon">{isDescriptionExpanded ? '▼' : '▶'}</span>
           </h2>
           <p className="brief-description">
-            逐层计算每个高度层级的水量 | 时间O(m*n) 空间O(1)
+            {rowByRowLabel}
           </p>
         </div>
         {isDescriptionExpanded && (
@@ -321,11 +285,12 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={rowOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '当前层', value: currentStep.currentRow }, { label: '临时水量', value: currentStep.tempSum }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={rowOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description} metrics={[{ label: '累计接水', value: currentStep.totalWater }, { label: '当前水层', value: currentStep.currentRow }, { label: '待确认格', value: currentStep.tempSum }]} />}
         <svg
           ref={d3Container}
           className="d3-component"
         />
+        {currentStep?.phase === 'complete' && !currentStep.waterMatrix.length && <div className="row-by-row-limit" role="status">{currentStep.description}</div>}
         {currentStep && <div className="row-by-row-code-panel"><RowByRowCodePanel step={currentStep} /></div>}
         <AnimationControls
           isPlaying={isPlaying}

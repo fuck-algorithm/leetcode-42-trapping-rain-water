@@ -20,8 +20,10 @@ describe('AnimationControls behavior', () => {
   it('seeks by progress range and forwards the selected playback speed', () => {
     const props = makeProps();
     render(<AnimationControls {...props} />);
-    fireEvent.change(screen.getByTitle(/进度/), { target: { value: '50' } });
-    fireEvent.change(screen.getByTitle(/播放速度/), { target: { value: '250' } });
+    expect(screen.getByRole('slider', { name: '动画步骤进度' })).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: '动画播放速度' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: '动画步骤进度' }), { target: { value: '50' } });
+    fireEvent.change(screen.getByRole('slider', { name: '动画播放速度' }), { target: { value: '250' } });
     expect(props.onSeek).toHaveBeenCalledWith(50);
     expect(props.onSpeedChange).toHaveBeenCalledWith(250);
   });
@@ -41,6 +43,18 @@ describe('AnimationControls behavior', () => {
     fireEvent.keyDown(input, { key: 'ArrowRight' });
     expect(props.onNext).toHaveBeenCalledTimes(1);
     input.remove();
+  });
+
+  it('does not hijack keyboard events from focused buttons, sliders, or tabs', () => {
+    const props = makeProps({ onReset: jest.fn() });
+    render(<AnimationControls {...props} />);
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.keyDown(screen.getByRole('slider', { name: '动画步骤进度' }), { key: 'ArrowRight' });
+    expect(props.onPlay).not.toHaveBeenCalled();
+    expect(props.onNext).not.toHaveBeenCalled();
+    button.remove();
   });
 
   it('blocks arrow-key stepping beyond either end and toggles playback from Space', () => {

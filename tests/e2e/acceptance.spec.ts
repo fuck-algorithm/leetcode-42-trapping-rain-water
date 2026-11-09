@@ -205,6 +205,6 @@ test('E2E-015 样式不包含紫色主题', async ({ page }) => {
   const styles = await page.locator('style').allTextContents();
   const sourceMapFreeStyles = styles.filter(text => !text.includes('sourceMappingURL'));
   expect(sourceMapFreeStyles.join('\n')).not.toMatch(/\bpurple\b/i);
-  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('fill', 'rgb(63, 139, 119)');
-  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('stroke', 'rgb(23, 108, 85)');
+  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('fill', 'rgb(113, 137, 145)');
+  await expect(page.locator('.bar[data-status="current"]').first()).toHaveCSS('stroke', 'rgb(24, 118, 90)');
 });

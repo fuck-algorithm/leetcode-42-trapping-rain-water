@@ -63,8 +63,14 @@
 .row-by-row-visualizer .visualization-wrapper {
   flex: 1;
   position: relative;
-  min-height: 400px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
+
+.row-by-row-visualizer .row-by-row-code-panel { flex: 0 0 200px; min-height: 0; }
+.row-by-row-visualizer .animation-controls { flex: 0 0 44px; }
+.row-by-row-visualizer .row-by-row-limit { position: absolute; inset: 42px 12px auto; padding: 10px 14px; background: #fff7e6; border-left: 3px solid #b07a12; color: #493b1c; line-height: 1.5; z-index: 2; }
 
 .row-by-row-visualizer .d3-component {
   width: 100%;

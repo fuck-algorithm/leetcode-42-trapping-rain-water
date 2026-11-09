@@ -5,8 +5,8 @@ import { CodeLineBinding } from '../../components/canvas/animation/types';
 
 export interface BruteForceStep {
   codeLineBindings?: CodeLineBinding;
-  phase: 'init' | 'scanLeftStart' | 'scanLeftComplete' | 
-         'scanRightStart' | 'scanRightComplete' | 
+  phase: 'init' | 'scanLeftStart' | 'scanLeftComplete' |
+         'scanRightStart' | 'scanRightComplete' |
          'compare' | 'waterFound' | 'complete';
   position: number;
   scanIndex?: number;

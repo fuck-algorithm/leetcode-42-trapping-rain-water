@@ -59,27 +59,23 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
     // 遍历每个位置
     for (let i = 0; i < n; i++) {
       // 开始处理当前位置
-      generatedSteps.push({
-        phase: 'scanLeftStart',
-        position: i,
-        leftMax: 0,
-        rightMax: 0,
-        waterLevel: { ...waterLevel },
-        totalWater,
-        description: `从位置 ${i} 开始，先检查包含当前柱的左侧范围。`,
-        subStepDescription: `当前柱高 ${heights[i]}；左扫描从 0 到 ${i}，寻找最高左边界。`,
-        codeLineBindings: SCAN_LEFT
-      });
-
-      // 左侧扫描
+      // 左侧扫描：逐项展示指针移动和当前最大值。
       let leftMax = 0;
       for (let j = 0; j <= i; j++) {
         leftMax = Math.max(leftMax, heights[j]);
+        generatedSteps.push({
+          phase: 'scanLeftStart', position: i, scanIndex: j, leftMax, rightMax: 0,
+          waterLevel: { ...waterLevel }, totalWater,
+          description: `向左扫描到第 ${j} 根柱：柱高 ${heights[j]}，左侧最高更新为 ${leftMax}。`,
+          subStepDescription: `当前目标是第 ${i} 根柱；继续查看左侧剩余柱子。`,
+          codeLineBindings: SCAN_LEFT
+        });
       }
 
       generatedSteps.push({
         phase: 'scanLeftComplete',
         position: i,
+        scanIndex: i,
         leftMax,
         rightMax: 0,
         waterLevel: { ...waterLevel },
@@ -89,10 +85,17 @@ export const useBruteForceSteps = ({ heights, speed = 500 }: UseBruteForceStepsP
         codeLineBindings: SCAN_LEFT_DONE
       });
 
-      // 右侧扫描
+      // 右侧扫描：从目标柱开始，逐项展示当前最大值。
       let rightMax = 0;
       for (let j = i; j < n; j++) {
         rightMax = Math.max(rightMax, heights[j]);
+        generatedSteps.push({
+          phase: 'scanRightStart', position: i, scanIndex: j, leftMax, rightMax,
+          waterLevel: { ...waterLevel }, totalWater,
+          description: `向右扫描到第 ${j} 根柱：柱高 ${heights[j]}，右侧最高更新为 ${rightMax}。`,
+          subStepDescription: `当前目标是第 ${i} 根柱；继续查看右侧剩余柱子。`,
+          codeLineBindings: SCAN_RIGHT
+        });
       }
 
       generatedSteps.push({
