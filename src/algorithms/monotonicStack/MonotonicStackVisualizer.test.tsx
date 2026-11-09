@@ -26,6 +26,8 @@ describe('MonotonicStackVisualizer D3 view', () => {
     expect(panel.querySelector('.code-line.current')).toBeInTheDocument();
     expect(monotonicStackCode.javascript.split('\n')).toHaveLength(19);
     expect(screen.getByText(/入栈当前柱/)).toBeInTheDocument();
+    expect(screen.getByText('槽面积')).toBeInTheDocument();
+    expect(screen.getByText('新增水格')).toBeInTheDocument();
   });
 
   it('renders basin cells after repeated pop/calculate events and updates the code focus', async () => {

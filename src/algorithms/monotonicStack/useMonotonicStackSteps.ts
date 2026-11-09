@@ -13,6 +13,7 @@ export interface MonotonicStackStep {
   height?: number;
   area?: number;
   note?: string;
+  additionalWater?: number;
   phase: 'push' | 'pop' | 'calculate' | 'complete';
   description?: string;
   codeLineBindings?: CodeLineBinding;
@@ -55,14 +56,16 @@ export function buildMonotonicStackSteps(heights: number[]): MonotonicStackStep[
       const height = Math.min(heights[leftIndex], heights[i]) - heights[popIndex];
       if (height > 0) {
         const area = width * height;
+        const previousWater = [...water];
         for (let j = leftIndex + 1; j < i; j++) {
           const waterHeight = Math.max(0, Math.min(heights[leftIndex], heights[i]) - heights[j]);
           water[j] = Math.max(water[j], waterHeight);
         }
-        // Each basin closure may overlap water assigned by a narrower basin; keep the
-        // per-column snapshot canonical and derive the total from that same snapshot.
+        // A closed basin's rectangle can overlap water represented by an earlier basin.
+        // Keep snapshots canonical; only report the net cells newly added to the answer.
         totalWater = water.reduce((sum, amount) => sum + amount, 0);
-        generatedSteps.push({ heights, stack: [...stack], water: [...water], totalWater, currentIndex: i, popIndex, width, height, area, phase: 'calculate', description: `计算水量：宽度=${width}（${i}-${leftIndex}-1），高度=${height}（min(${heights[leftIndex]},${heights[i]})-${heights[popIndex]}），面积=${area}`, codeLineBindings: CODE_LINE_MAPPINGS.calcWidthHeight });
+        const additionalWater = totalWater - previousWater.reduce((sum, amount) => sum + amount, 0);
+        generatedSteps.push({ heights, stack: [...stack], water: [...water], totalWater, currentIndex: i, popIndex, width, height, area, additionalWater, phase: 'calculate', description: `闭合凹槽：宽 ${width}、深 ${height}，矩形面积 ${area} 格；扣除已显示的重叠格后，本次新增 ${additionalWater} 格，累计 ${totalWater} 格。`, codeLineBindings: CODE_LINE_MAPPINGS.calcWidthHeight });
       }
     }
     stack.push(i);

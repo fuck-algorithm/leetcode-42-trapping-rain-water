@@ -83,7 +83,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
       
-      const { stack, water, totalWater, currentIndex, popIndex, phase } = currentStep;
+      const { stack, water, totalWater, currentIndex, popIndex, phase, width: basinWidth, height: basinDepth, area: basinArea, additionalWater } = currentStep;
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? true;
       
       // 找到最大高度来设置缩放
@@ -109,12 +109,26 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         .domain(heights.map((_, i) => i.toString()))
         .range([0, width])
         .padding(barPadding);
-      
+
       const yScale = d3.scaleLinear()
         .domain([0, maxHeight])
         .nice()
         .range([height, 0]);
-      
+
+      const focusIndices = phase === 'complete' ? [] : phase === 'calculate' && popIndex !== undefined && basinWidth !== undefined
+        ? [currentIndex - basinWidth - 1, popIndex, currentIndex].filter(index => index >= 0 && index < heights.length)
+        : phase === 'pop' && popIndex !== undefined ? [popIndex] : [currentIndex];
+      const focusGuide = dynamicLayer.append('g').attr('class', 'basin-focus');
+      focusIndices.forEach(index => {
+        const x = (xScale(index.toString()) || 0) + xScale.bandwidth() / 2;
+        const label = index === popIndex ? `槽底 ${index}` : index === currentIndex ? `右墙 ${index}` : `左墙 ${index}`;
+        focusGuide.append('line').attr('x1', x).attr('x2', x).attr('y1', yScale(heights[index])).attr('y2', height).attr('stroke', index === popIndex ? '#b07a12' : '#18765a').attr('stroke-width', 1.4).attr('stroke-dasharray', '3 4').attr('opacity', 0.65);
+        focusGuide.append('text').attr('x', x).attr('y', height - 8).attr('text-anchor', 'middle').attr('fill', '#19332d').attr('font-size', 10).attr('paint-order', 'stroke').attr('stroke', '#fff').attr('stroke-width', 3).text(label);
+      });
+      if (phase === 'calculate' && basinWidth !== undefined && basinDepth !== undefined) {
+        const basinSummary = `凹槽：宽 ${basinWidth} × 深 ${basinDepth} = 面积 ${basinArea} 格；新增 ${additionalWater} 格（重叠不重复计数）`;
+        dynamicLayer.append('text').attr('class', 'basin-summary').attr('x', width / 2).attr('y', 24).attr('text-anchor', 'middle').attr('fill', '#19332d').attr('font-size', 12).attr('font-weight', 600).attr('paint-order', 'stroke').attr('stroke', '#fff').attr('stroke-width', 4).text(basinSummary);
+      }
       // 简化X轴，当数据过多时只显示部分刻度
       const xAxis = d3.axisBottom(xScale);
       if (heights.length > 15) {
@@ -333,7 +347,7 @@ const MonotonicStackVisualizer: React.FC<MonotonicStackVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={stackOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '比较当前柱和栈顶，判断是否形成新的接水容器。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '栈长度', value: currentStep.stack.length }, { label: '扫描索引', value: currentStep.currentIndex }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={stackOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '比较当前柱和栈顶，判断是否形成新的接水容器。'} metrics={[{ label: '累计水量', value: currentStep.totalWater }, { label: '槽面积', value: currentStep.phase === 'calculate' ? currentStep.area ?? 0 : '—' }, { label: '新增水格', value: currentStep.phase === 'calculate' ? currentStep.additionalWater ?? 0 : '—' }]} />}
         <svg
           ref={d3Container}
           className="d3-component"

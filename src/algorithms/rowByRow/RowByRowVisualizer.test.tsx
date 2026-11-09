@@ -1,7 +1,8 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 /* eslint-disable testing-library/no-node-access, testing-library/no-container, testing-library/no-unnecessary-act */
 import { RowByRowVisualizer } from './index';
+import { useRowByRowSteps } from './useRowByRowSteps';
 
 const RECT = { x: 0, y: 0, top: 0, left: 0, right: 1000, bottom: 650, width: 1000, height: 650, toJSON: () => ({}) } as DOMRect;
 beforeEach(() => {
@@ -23,15 +24,16 @@ describe('RowByRowVisualizer terrain rendering', () => {
     expect(Number(svg.getAttribute('height'))).toBeGreaterThan(0);
   });
 
-  it('keeps closed water rows opaque and current unclosed cells marked as candidates', async () => {
+  it('keeps each water cell pending until its row is closed by a right wall', async () => {
     const heights = [3, 0, 2, 0, 4];
-    const { container } = render(<RowByRowVisualizer heights={heights} />);
-    const next = screen.getByTitle('下一步 (→)');
-    for (let step = 0; step < 7; step++) act(() => fireEvent.click(next));
-    await waitFor(() => expect(container.querySelectorAll('.water-cell')).toHaveLength(2));
-    const cells = Array.from(container.querySelectorAll('.water-cell'));
-    expect(cells.some(cell => cell.getAttribute('data-pending') === 'true')).toBe(true);
-    expect(cells.every(cell => cell.getAttribute('data-pending') !== null)).toBe(true);
+    const { result } = renderHook(() => useRowByRowSteps({ heights }));
+    const snapshots = result.current.steps;
+    const firstPending = snapshots.find((step: any) => step.phase === 'scanRow' && step.currentRow === 1 && step.currentCol === 1);
+    const rowClosed = snapshots.find((step: any) => step.phase === 'scanRow' && step.currentRow === 1 && step.currentCol === 2);
+    expect(firstPending?.waterMatrix[0][1]).toBe(1);
+    expect(firstPending?.confirmedWaterMatrix?.[0][1]).toBe(0);
+    expect(rowClosed?.confirmedWaterMatrix?.[0][1]).toBe(1);
+    expect(snapshots.at(-1)?.totalWater).toBe(7);
   });
 
   it('uses the sparse index ticks and displays a row-completion note after progressing', async () => {
