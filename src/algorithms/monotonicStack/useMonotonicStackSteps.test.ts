@@ -21,6 +21,13 @@ describe('buildMonotonicStackSteps', () => {
     }
   });
 
+  it('reports new water separately from overlapping basin rectangle area', () => {
+    const calculations = buildMonotonicStackSteps([5, 1, 2, 1, 4]).filter(step => step.phase === 'calculate');
+    expect(calculations.map(step => step.area)).toEqual([1, 1, 6]);
+    expect(calculations.map(step => step.additionalWater)).toEqual([1, 1, 6]);
+    expect(calculations.at(-1)?.totalWater).toBe(8);
+  });
+
   it('shows distinct pop-without-left-wall and area-closed basin events', () => {
     const noLeftWall = buildMonotonicStackSteps([1, 2]).find(step => step.description?.includes('缺少左墙'));
     const basin = buildMonotonicStackSteps([3, 0, 2]).find(step => step.phase === 'calculate');

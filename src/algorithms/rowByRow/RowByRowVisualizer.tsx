@@ -168,7 +168,7 @@ const RowByRowVisualizer: React.FC<RowByRowVisualizerProps> = ({
       terrainLayer.raise();
       const waterLayer = getPersistentWaterLayer(svgElement, 'row-by-row', plotTransform);
       const pendingDuration = reducedMotion ? 0 : motionDuration(speed, false);
-      const visibleWater = waterCells.map(cell => ({ ...cell, pending: phase === 'scanRow' && cell.id.endsWith(`-${currentRow}`) }));
+      const visibleWater = phase === 'complete' ? waterCells.map(cell => ({ ...cell, pending: false })) : waterCells;
       renderWaterCells(waterLayer, visibleWater, pendingDuration, `rowByRow:${heights.join(',')}`, reducedMotion);
 
       // 索引标签

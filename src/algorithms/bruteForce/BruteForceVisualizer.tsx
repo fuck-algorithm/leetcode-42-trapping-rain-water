@@ -72,10 +72,9 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       return;
     }
 
-    const controlsHeight = 154; // 说明栏 34px 与播放控制 120px
-    const margin = { top: 80, right: 20, bottom: 30, left: 40 };
+    const margin = { top: 46, right: 28, bottom: 42, left: 48 };
     const width = dimensions.width - margin.left - margin.right;
-    const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
+    const height = dimensions.height - margin.top - margin.bottom;
 
     const { position, leftMax, rightMax, waterLevel, totalWater, phase, scanIndex } = currentStep;
     const [, maxHeight] = resolveHeightDomain(heights);
@@ -103,7 +102,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
 
     // Y轴
     plot.append('g')
-      .call(d3.axisLeft(yScale).ticks(5))
+      .call(d3.axisLeft(yScale).ticks(Math.min(6, Math.max(2, Math.floor(height / 70)))))
       .append('text')
       .attr('transform', 'rotate(-90)')
       .attr('y', -margin.left + 8)
@@ -196,7 +195,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     }
 
     // 索引标签
-    if (heights.length <= 30) {
+    if (heights.length <= 24) {
       heights.forEach((_, i) => {
         const barX = xScale(i.toString())!;
         const barWidth = xScale.bandwidth();
@@ -231,7 +230,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     legend.append('rect')
       .attr('x', -5)
       .attr('y', -5)
-      .attr('width', 95)
+      .attr('width', Math.min(width - 8, 560))
       .attr('height', 22)
       .attr('fill', 'rgba(255, 255, 255, 0.95)')
       .attr('stroke', '#e0e0e0')
@@ -246,7 +245,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     ];
 
     legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }, index: number) => {
-      const itemX = index * Math.min(136, width / 4);
+      const itemX = index * Math.min(136, Math.max(92, width / legendItems.length));
       legend.append('rect')
         .attr('x', itemX).attr('y', item.y)
         .attr('width', 12).attr('height', 12)
