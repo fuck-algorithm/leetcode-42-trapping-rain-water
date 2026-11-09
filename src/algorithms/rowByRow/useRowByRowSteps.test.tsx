@@ -2,6 +2,14 @@ import { act, renderHook } from '@testing-library/react';
 import { useRowByRowSteps } from './useRowByRowSteps';
 
 describe('useRowByRowSteps snapshots', () => {
+  it('prevents large terrains from allocating enormous row-by-row snapshots', () => {
+    const heights = Array(200).fill(10000);
+    const { result } = renderHook(() => useRowByRowSteps({ heights }));
+    expect(result.current.totalSteps).toBe(1);
+    expect(result.current.currentStep?.phase).toBe('complete');
+    expect(result.current.currentStep?.description).toContain('双数组法或双指针法');
+  });
+
   it('removes unclosed candidate water and returns a complete zero frame for empty/zero terrains', () => {
     const emptyHeights: number[] = [];
     const { result: empty } = renderHook(() => useRowByRowSteps({ heights: emptyHeights }));

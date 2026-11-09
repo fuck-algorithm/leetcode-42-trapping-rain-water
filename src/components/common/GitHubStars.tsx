@@ -16,10 +16,10 @@ interface CacheData {
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
-    
+
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
-    
+
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -37,15 +37,11 @@ const getCachedStars = async (repo: string): Promise<CacheData | null> => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.get(repo);
-      
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const result = request.result;
-        if (result) {
-          resolve({ stars: result.stars, timestamp: result.timestamp });
-        } else {
-          resolve(null);
-        }
+        resolve(result ? { stars: result.stars, timestamp: result.timestamp } : null);
       };
     });
   } catch (error) {
@@ -54,20 +50,14 @@ const getCachedStars = async (repo: string): Promise<CacheData | null> => {
   }
 };
 
-
 // 保存到 IndexedDB
 const setCachedStars = async (repo: string, stars: number): Promise<void> => {
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.put({
-        repo,
-        stars,
-        timestamp: Date.now()
-      });
-      
+      const request = store.put({ repo, stars, timestamp: Date.now() });
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
@@ -78,12 +68,26 @@ const setCachedStars = async (repo: string, stars: number): Promise<void> => {
 
 // 从 GitHub API 获取 Star 数
 const fetchStarsFromAPI = async (owner: string, repo: string): Promise<number> => {
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-  if (!response.ok) {
-    throw new Error('获取 GitHub 数据失败');
+  const controller = new AbortController();
+  let timeout = 0;
+  try {
+    const result = await Promise.race([
+      fetch(`https://api.github.com/repos/${owner}/${repo}`, { signal: controller.signal }).then(async response => {
+        if (!response.ok) throw new Error('获取 GitHub 数据失败');
+        const data = await response.json();
+        return typeof data.stargazers_count === 'number' ? data.stargazers_count : 0;
+      }),
+      new Promise<number>(resolve => {
+        timeout = window.setTimeout(() => {
+          controller.abort();
+          resolve(0);
+        }, 2000);
+      }),
+    ]);
+    return result;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  const data = await response.json();
-  return data.stargazers_count || 0;
 };
 
 interface GitHubStarsProps {
@@ -97,43 +101,35 @@ const GitHubStars: React.FC<GitHubStarsProps> = ({ owner, repo }) => {
 
   useEffect(() => {
     const repoKey = `${owner}/${repo}`;
-    
+    let cancelled = false;
     const fetchStars = async () => {
+      const cached = await getCachedStars(repoKey);
+      if (cancelled) return;
+      if (cached) {
+        setStars(cached.stars);
+        setLoading(false);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) return;
+      }
       try {
-        // 先检查缓存
-        const cached = await getCachedStars(repoKey);
-        
-        if (cached) {
-          setStars(cached.stars);
-          setLoading(false);
-          
-          // 检查缓存是否过期
-          if (Date.now() - cached.timestamp < CACHE_DURATION) {
-            return; // 缓存未过期，直接使用
-          }
-        }
-        
-        // 从 API 获取最新数据
         const freshStars = await fetchStarsFromAPI(owner, repo);
+        if (cancelled) return;
         setStars(freshStars);
         await setCachedStars(repoKey, freshStars);
       } catch (error) {
-        console.error('获取 Star 数失败:', error);
-        // 如果 API 失败，使用缓存数据（如果有的话）
+        if (!cancelled) console.error('获取 Star 数失败:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchStars();
+    return () => { cancelled = true; };
   }, [owner, repo]);
 
   return (
     <span className="github-stars" title="GitHub Stars">
       <StarOutlined />
-      <span className="stars-count">
-        {loading ? '...' : stars}
-      </span>
+      <span className="stars-count">{loading ? '...' : stars}</span>
     </span>
   );
 };

@@ -30,10 +30,11 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
 }) => {
   // 键盘快捷键处理
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // 如果焦点在输入框中，不处理快捷键
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-      return;
-    }
+    const target = e.target;
+    if (target instanceof HTMLElement && (
+      target.isContentEditable
+      || target.closest('input, textarea, select, button, a, [role="button"], [role="slider"], [role="tab"]')
+    )) return;
 
     switch (e.key) {
       case 'ArrowLeft':
@@ -156,6 +157,7 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
         <div className="progress-container">
           <input
             type="range"
+            aria-label="动画步骤进度"
             min="0"
             max="100"
             value={progress}
@@ -171,6 +173,7 @@ const AnimationControls: React.FC<AnimationControlsProps> = ({
           <input
             id="speed-slider"
             type="range"
+            aria-label="动画播放速度"
             min="100"
             max="1000"
             step="100"

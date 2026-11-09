@@ -23,6 +23,17 @@ describe('RowByRowVisualizer terrain rendering', () => {
     expect(Number(svg.getAttribute('height'))).toBeGreaterThan(0);
   });
 
+  it('keeps closed water rows opaque and current unclosed cells marked as candidates', async () => {
+    const heights = [3, 0, 2, 0, 4];
+    const { container } = render(<RowByRowVisualizer heights={heights} />);
+    const next = screen.getByTitle('下一步 (→)');
+    for (let step = 0; step < 7; step++) act(() => fireEvent.click(next));
+    await waitFor(() => expect(container.querySelectorAll('.water-cell')).toHaveLength(2));
+    const cells = Array.from(container.querySelectorAll('.water-cell'));
+    expect(cells.some(cell => cell.getAttribute('data-pending') === 'true')).toBe(true);
+    expect(cells.every(cell => cell.getAttribute('data-pending') !== null)).toBe(true);
+  });
+
   it('uses the sparse index ticks and displays a row-completion note after progressing', async () => {
     const heights = [3, 0, 2, 0, 4];
     const { container } = render(<RowByRowVisualizer heights={heights} />);

@@ -78,11 +78,15 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
 
     const focusedIndex = phase === 'init' || phase === 'moveLeft' ? left : phase === 'moveRight' ? right : null;
     const xAxis = d3.axisBottom(x).tickFormat(index => `${index}`).tickSize(0).tickPadding(8);
+    if (heights.length > 20) {
+      const stride = Math.ceil(heights.length / Math.max(2, Math.floor(widthInner / 52)));
+      xAxis.tickValues(heights.map((_, index) => index).filter(index => index === left || index === right || index % stride === 0));
+    }
     plot.selectAll<SVGGElement, unknown>('.layer-index-axis').data([null]).join('g')
       .attr('class', 'layer-index-axis').attr('transform', `translate(0,${heightInner})`)
       .call(xAxis).call(axis => axis.select('.domain').attr('stroke', '#aebbb7'))
       .call(axis => axis.selectAll('text').attr('fill', '#687b76').attr('font-size', heights.length > 24 ? 8 : 10));
-    plot.select('.layer-grid').selectAll('.tick text').attr('x', -8).attr('text-anchor', 'end');
+    plot.select('.layer-grid').selectAll('.tick text').attr('x', -8).attr('text-anchor', 'end').attr('fill', '#687b76').attr('font-size', 10);
     const statuses = heights.map((value, index) => ({
       id: `bar-${index}`, index, value,
       status: currentStep.phase === 'complete' ? 'done' : phase === 'compare' && (index === left || index === right) ? 'compare' : index === focusedIndex ? 'current' : index < left || index > right ? 'visited' : 'idle'
@@ -127,18 +131,18 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
         return (time: number) => `M${cell.x},${cell.y + 2 - time * 5} Q${cell.x + width * 0.25},${cell.y - 4 - time * 5} ${cell.x + width * 0.5},${cell.y + 1 - time * 5} T${cell.x + width},${cell.y + 1 - time * 5}`;
       }).attr('opacity', 0).remove();
 
-    const guideData = [{ id: 'left-max', value: leftMax, start: 0, end: x(left) ?? 0, labelX: 8, color: COLORS.current, label: `L max ${leftMax}`, side: 'start' }, { id: 'right-max', value: rightMax, start: widthInner, end: (x(right) ?? widthInner) + x.bandwidth(), labelX: widthInner - 8, color: COLORS.done, label: `R max ${rightMax}`, side: 'end' }];
+    const guideData = [{ id: 'left-max', value: leftMax, start: 0, end: x(left) ?? 0, labelX: 8, color: COLORS.current, label: `左侧最高 ${leftMax}`, side: 'start' }, { id: 'right-max', value: rightMax, start: widthInner, end: (x(right) ?? widthInner) + x.bandwidth(), labelX: widthInner - 8, color: COLORS.done, label: `右侧最高 ${rightMax}`, side: 'end' }];
     const guides = plot.select('.layer-guides').selectAll<SVGLineElement, typeof guideData[number]>('line.guide').data(guideData, d => d.id);
     guides.enter().append('line').attr('class', 'guide').merge(guides).interrupt('update').transition('update').duration(transitionMs)
       .attr('x1', d => d.start).attr('x2', d => d.end).attr('y1', d => y(d.value)).attr('y2', d => y(d.value)).attr('stroke', d => d.color);
     const guideLabels = plot.select('.layer-labels').selectAll<SVGTextElement, typeof guideData[number]>('text.guide-label').data(guideData, d => d.id);
     const guideLabelY = (guide: typeof guideData[number]) => {
       const coordinate = y(guide.value);
-      if (coordinate < 26) return guide.id === 'left-max' ? coordinate + 38 : coordinate + 16;
-      if (guide.id === 'left-max') return coordinate - 8;
-      return coordinate + 14;
+      const offset = guide.id === 'left-max' ? -10 : 15;
+      return coordinate < 22 ? coordinate + Math.abs(offset) + 4 : coordinate + offset;
     };
     guideLabels.join('text').attr('class', 'guide-label').attr('text-anchor', d => d.side).attr('x', d => d.labelX).attr('y', guideLabelY).text(d => d.label);
+    plot.selectAll<SVGTextElement, unknown>('.guide-label').attr('fill', '#31554d');
     const anchorData = currentStep.phase === 'moveLeft' || currentStep.phase === 'moveRight' ? [{ id: `anchor-active-${currentStep.phase === 'moveRight' ? right : left}`, index: currentStep.phase === 'moveRight' ? right : left, label: fillAtCurrent ? `本列 +${fillAtCurrent} 格水` : '新边界', color: fillAtCurrent ? COLORS.water : COLORS.current }] : [];
     const anchors = plot.select('.layer-labels').selectAll<SVGGElement, typeof anchorData[number]>('g.value-anchor').data(anchorData, d => d.id);
     anchors.exit().interrupt().transition('exit').duration(transitionMs).attr('opacity', 0).remove();
@@ -167,7 +171,8 @@ const TwoPointersVisualizer: React.FC<TwoPointersVisualizerProps> = ({ heights, 
       .attr('stroke', d => d.label.includes('左') ? COLORS.current : COLORS.done).attr('opacity', 1);
 
     const labeledIndices = new Set([focusedIndex, ...(phase === 'compare' ? [left, right] : [])].filter((index): index is number => index !== null));
-    const valueLabels = heights.map((value, index) => ({ value, index })).filter(item => labeledIndices.has(item.index) || (phase === 'complete' && item.index % (heights.length > 24 ? 3 : 1) === 0));
+    const valueStride = Math.ceil(heights.length / Math.max(2, Math.floor(widthInner / 54)));
+    const valueLabels = heights.map((value, index) => ({ value, index })).filter(item => heights.length <= 24 || labeledIndices.has(item.index) || (phase === 'complete' && item.index % valueStride === 0));
     plot.select('.layer-labels').selectAll<SVGTextElement, typeof valueLabels[number]>('text.value-label').data(valueLabels, item => `value-${item.index}`)
       .join('text').attr('class', 'value-label').attr('data-node-id', item => `value-${item.index}`).attr('x', item => (x(item.index) ?? 0) + x.bandwidth() / 2).attr('y', item => y(item.value) - 8).text(item => item.value);
 
@@ -218,17 +223,17 @@ export function describeTwoPointerFrame(step: NonNullable<ReturnType<typeof useT
   if (step.phase === 'complete') return `计算完成：一共接住 ${step.totalWater} 格水。`;
   if (step.phase === 'init') return `从左右两端开始。水面高度由两边较矮的边界决定。`;
   if (step.phase === 'compare') {
+    const leftHeight = step.decision?.leftHeight ?? 0;
+    const rightHeight = step.decision?.rightHeight ?? 0;
     const side = step.decision?.action === 'move_left' ? '左' : '右';
-    const height = side === '左' ? step.decision?.leftHeight : step.decision?.rightHeight;
-    return `比较两端：${side}边柱高 ${height}，本轮处理${side}边，因为较矮的一边决定水位。`;
+    return `比较两端：左柱高 ${leftHeight}、右柱高 ${rightHeight}；${side}边更矮，本轮处理${side}边，因为较矮的一边决定水位。`;
   }
   const index = step.phase === 'moveRight' ? step.right : step.left;
   const height = step.heights[index] ?? 0;
   const boundary = step.phase === 'moveRight' ? step.rightMax : step.leftMax;
   const amount = step.water[index] ?? 0;
-  return amount > 0
-    ? `处理第 ${index} 根柱：柱高 ${height}，边界水位 ${boundary}，本列装 ${boundary} − ${height} = ${amount} 格；累计 ${step.totalWater} 格。`
-    : `处理第 ${index} 根柱：柱高 ${height} 达到新的边界 ${boundary}，本列不存水；累计 ${step.totalWater} 格。`;
+  if (amount > 0) return `处理第 ${index} 根柱：柱高 ${height}，水位 ${boundary}，本列 ${boundary} − ${height} = ${amount} 格水；累计 ${step.totalWater} 格。`;
+  return `处理第 ${index} 根柱：柱高 ${height} 达到新边界 ${boundary}，本列接水 0 格；累计 ${step.totalWater} 格。`;
 }
 
 function operationLabel(phase: string): string {

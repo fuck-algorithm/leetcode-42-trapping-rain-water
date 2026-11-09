@@ -118,7 +118,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     const columns: HeightColumn[] = heights.map((value, index) => ({
       id: `column-${index}`, index, value, x: xScale(index.toString())!, y: yScale(value),
       width: xScale.bandwidth(), height: height - yScale(value),
-      stroke: index === position ? '#ff7043' : scanIndex === index ? '#FFC107' : '#333',
+      stroke: index === position ? '#18765a' : scanIndex === index ? '#b07a12' : '#52666c',
       strokeWidth: index === position || scanIndex === index ? 3 : 1
     }));
     renderHeightColumns(terrainLayer, columns, motionDuration(speed, reducedMotion), reducedMotion);
@@ -207,7 +207,7 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
           .attr('cx', barX + barWidth / 2)
           .attr('cy', height + 20)
           .attr('r', 10)
-          .attr('fill', isActive ? '#ff7043' : isScan ? '#FFC107' : 'rgba(80, 80, 80, 0.8)')
+          .attr('fill', isActive ? '#18765a' : isScan ? '#b07a12' : 'rgba(80, 80, 80, 0.8)')
           .attr('stroke', '#fff')
           .attr('stroke-width', 1);
 
@@ -223,43 +223,39 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
     }
 
 
-    // 图例
+    // 图例放在图表底边，避免覆盖柱体和水位线。
     const legend = plot.append('g')
-      .attr('transform', `translate(${width - 100}, 10)`);
+      .attr('transform', `translate(8, ${height + 38})`);
 
     // 图例背景
     legend.append('rect')
       .attr('x', -5)
       .attr('y', -5)
       .attr('width', 95)
-      .attr('height', 65)
+      .attr('height', 22)
       .attr('fill', 'rgba(255, 255, 255, 0.95)')
       .attr('stroke', '#e0e0e0')
       .attr('stroke-width', 1)
       .attr('rx', 4);
 
     const legendItems = [
-      { color: '#1a1a1a', label: '柱子', y: 0, stroke: '#333' },
-      { color: '#ff7043', label: '当前位置', y: 14 },
-      { color: '#FFC107', label: '扫描位置', y: 28 },
-      { color: '#268fc2', label: '雨水', y: 42 }
+      { color: '#718991', label: '柱体', y: 0, stroke: '#52666c' },
+      { color: '#18765a', label: '目标列', y: 0 },
+      { color: '#dfaa45', label: '扫描列', y: 0 },
+      { color: '#268fc2', label: '雨水', y: 0 }
     ];
 
-    legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }) => {
+    legendItems.forEach((item: { color: string; label: string; y: number; stroke?: string }, index: number) => {
+      const itemX = index * Math.min(136, width / 4);
       legend.append('rect')
-        .attr('y', item.y)
-        .attr('width', 12)
-        .attr('height', 12)
+        .attr('x', itemX).attr('y', item.y)
+        .attr('width', 12).attr('height', 12)
         .attr('fill', item.color)
         .attr('stroke', item.stroke || 'none')
         .attr('stroke-width', item.stroke ? 1 : 0);
-
       legend.append('text')
-        .attr('x', 16)
-        .attr('y', item.y + 9)
-        .attr('fill', '#333')
-        .style('font-size', '0.65em')
-        .style('font-weight', '500')
+        .attr('x', itemX + 16).attr('y', item.y + 9)
+        .attr('fill', '#333').style('font-size', '0.65em').style('font-weight', '500')
         .text(item.label);
     });
 
@@ -275,8 +271,8 @@ const BruteForceVisualizer: React.FC<BruteForceVisualizerProps> = ({
       .attr('width', width)
       .attr('height', 55)
       .attr('fill', 'rgba(255, 255, 255, 0.95)')
-      .attr('stroke', '#ff7043')
-      .attr('stroke-width', 2)
+      .attr('stroke', '#dce7e3')
+      .attr('stroke-width', 1)
       .attr('rx', 5);
 
     statePanel.append('text')

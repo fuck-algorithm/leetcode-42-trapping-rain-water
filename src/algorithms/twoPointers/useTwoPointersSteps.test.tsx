@@ -8,6 +8,7 @@ describe('useTwoPointersSteps teaching snapshots', () => {
     const steps = result.current.steps;
     expect(steps.length).toBeGreaterThan(1);
     expect(steps.every(step => Boolean(step.operation && step.narration && step.anchorIds?.length))).toBe(true);
+    expect(steps.filter(step => step.phase !== 'init').flatMap(step => step.anchorIds || []).every(id => /^column-\d+$/.test(id))).toBe(true);
     expect(steps[0].narration).toMatch(/初始化.*因为/);
     expect(steps[1].operation).toBe('compare');
     expect(steps[1].narration).toMatch(/比较.*因为/);

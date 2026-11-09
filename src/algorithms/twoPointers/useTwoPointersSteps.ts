@@ -280,7 +280,7 @@ export const useTwoPointersSteps = ({ heights, speed = 500 }: UseTwoPointersStep
         ...step,
         operation,
         narration,
-        anchorIds: step.phase === 'init' ? ['pointer-left', 'pointer-right'] : step.phase === 'compare' ? [`bar-${step.left}`, `bar-${step.right}`] : [`bar-${step.phase === 'moveRight' ? step.right : step.left}`]
+        anchorIds: step.phase === 'init' ? ['pointer-left', 'pointer-right'] : step.phase === 'compare' ? [`column-${step.left}`, `column-${step.right}`] : [`column-${step.phase === 'moveRight' ? step.right : step.left}`]
       };
     });
 

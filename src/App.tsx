@@ -46,26 +46,31 @@ function App() {
     {
       id: "twoPointers",
       title: "双指针法",
+      description: "从两端向中间扫描，逐列确定水量；适合先学。",
       content: <TwoPointersVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     },
     {
       id: "precomputation",
       title: "双数组法",
+      description: "先记录每列左右最高柱，再查表计算水量。",
       content: <PrecomputationVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     },
     {
       id: "monotonicStack",
       title: "单调栈法",
+      description: "遇到更高柱时闭合凹槽，按槽计算水量。",
       content: <MonotonicStackVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     },
     {
       id: "bruteForce",
       title: "暴力法(按列)",
+      description: "逐列扫描左右最高柱，再计算该列可接的水。",
       content: <BruteForceAnimation heights={heights} />
     },
     {
       id: "rowByRow",
       title: "按行求法",
+      description: "逐层寻找两堵墙之间的空格；直观看水面高度。",
       content: <RowByRowVisualizer heights={heights} speed={speed} onSpeedChange={handleSpeedChange} />
     }
   ];
