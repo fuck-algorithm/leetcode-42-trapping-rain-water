@@ -17,6 +17,15 @@ describe('usePrecomputationSteps with shared playback', () => {
     expect(steps.every(step => step.codeLineBindings && Object.entries(step.codeLineBindings).every(([language, lines]) => (lines as number[]).every((line: number) => line <= precomputationCode[language as keyof typeof precomputationCode].split('\n').length)))).toBe(true);
   });
 
+  it('stores each calculated column contribution separately from the running total', () => {
+    const { result } = renderHook(() => usePrecomputationSteps({ heights: [3, 0, 2] }));
+    const calculations = result.current.steps.filter(step => step.phase === 'waterCalculation');
+    expect(calculations.map(step => step.currentWater)).toEqual([0, 2, 0]);
+    expect(calculations.map(step => step.totalWater)).toEqual([0, 2, 2]);
+    expect(calculations[1].description).toContain('较矮边界 2 − 柱高 0');
+    expect(calculations[1].description).toContain('本列接水 2 格，累计 2 格');
+  });
+
   it('keeps deterministic snapshots and returns the sample total', () => {
     const heights = [4, 2, 0, 3, 2, 5];
     const { result, rerender } = renderHook(({ input }) => usePrecomputationSteps({ heights: input }), { initialProps: { input: heights } });

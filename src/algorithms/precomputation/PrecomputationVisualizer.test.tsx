@@ -24,6 +24,18 @@ describe('PrecomputationVisualizer first-frame and static axis layer', () => {
     expect(screen.getByTitle(/下一步/)).toBeInTheDocument();
   });
 
+  it('shows the current column formula and result during water calculation', async () => {
+    const heights = [3, 0, 2];
+    const { container } = render(<PrecomputationVisualizer heights={heights} />);
+    const next = screen.getByTitle('下一步 (→)');
+    for (let step = 0; step < 9; step++) fireEvent.click(next);
+    await waitFor(() => expect(container.querySelector('.column-water-formula')).toBeInTheDocument());
+    const formula = container.querySelector('.column-water-formula');
+    expect(formula).toHaveTextContent(/第 \d 列/);
+    expect(formula).toHaveTextContent(/min\(3, 2\)/);
+    expect(formula).toHaveTextContent(/= \d 格水/);
+  });
+
   it('reuses the static axis instance and removes guide curves above the 30-column budget', async () => {
     const longHeights = Array.from({ length: 32 }, (_, index) => index % 6);
     const { container } = render(<PrecomputationVisualizer heights={longHeights} />);

@@ -82,7 +82,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       const width = dimensions.width - margin.left - margin.right;
       const height = dimensions.height - margin.top - margin.bottom - controlsHeight;
       
-      const { leftMax, rightMax, water, totalWater, currentIndex, phase } = currentStep;
+      const { leftMax, rightMax, water, totalWater, currentIndex, currentWater, phase } = currentStep;
       
       // Find the maximum height to set the scale
       const [, heightDomainMax] = resolveHeightDomain([
@@ -198,15 +198,26 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
       
       staticLegend.attr('transform', `translate(${width - 80}, 5)`);
       
-      // Add water amount
       dynamicLayer.append('text')
-        .attr('x', width / 2)
+        .attr('class', 'precomputation-total')
+        .attr('x', width - 8)
         .attr('y', 0)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#687b76')
+        .attr('text-anchor', 'end')
+        .attr('fill', '#31554d')
         .style('font-size', '0.75em')
-        .text(`总雨水量: ${totalWater} 单位`);
-      
+        .text(`累计接水 ${totalWater} 格`);
+
+      if (phase === 'waterCalculation' && currentIndex >= 0) {
+        const formula = `第 ${currentIndex} 列：min(${leftMax[currentIndex]}, ${rightMax[currentIndex]}) − ${heights[currentIndex]} = ${currentWater ?? 0} 格水`;
+        dynamicLayer.append('text').attr('class', 'column-water-formula').attr('x', width / 2).attr('y', 20).attr('text-anchor', 'middle').attr('fill', '#19332d').attr('font-size', 12).attr('font-weight', 600).attr('paint-order', 'stroke').attr('stroke', '#fff').attr('stroke-width', 4).text(formula);
+      }
+      if (currentIndex >= 0 && phase !== 'complete') {
+        const centerX = (xScale(String(currentIndex)) ?? 0) + xScale.bandwidth() / 2;
+        const marker = dynamicLayer.append('g').attr('class', 'precomputation-focus');
+        marker.append('line').attr('x1', centerX).attr('x2', centerX).attr('y1', 0).attr('y2', height).attr('stroke', '#18765a').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 4').attr('opacity', 0.65);
+        marker.append('text').attr('x', centerX).attr('y', height - 6).attr('text-anchor', 'middle').attr('fill', '#19332d').attr('font-size', 10).attr('font-weight', 600).attr('paint-order', 'stroke').attr('stroke', '#fff').attr('stroke-width', 3).text(`当前列 ${currentIndex}`);
+      }
+
       // 简化阶段信息
       let phaseText = '';
       switch (phase) {
@@ -272,7 +283,7 @@ const PrecomputationVisualizer: React.FC<PrecomputationVisualizerProps> = ({
         )}
       </div>
       <div className="visualization-wrapper shared-algorithm-workspace">
-        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={precomputationOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '扫描数组并根据左右边界最大值确定蓄水量。'} metrics={[{ label: '总水量', value: currentStep.totalWater }, { label: '索引', value: currentStep.currentIndex }, { label: '阶段', value: currentStep.phase === 'leftScan' ? '左扫' : currentStep.phase === 'rightScan' ? '右扫' : '求水' }]} />}
+        {currentStep && <VisualizationTeachingLayer codeLines={getBoundCodeLine(currentStep.codeLineBindings, 'java').highlighted} operation={precomputationOperation(currentStep.phase)} currentStep={currentStepIndex + 1} totalSteps={totalSteps} narration={currentStep.description || '扫描数组并根据左右边界最大值确定蓄水量。'} metrics={[{ label: '累计接水', value: currentStep.totalWater }, { label: '当前列水量', value: currentStep.phase === 'waterCalculation' ? currentStep.currentWater ?? 0 : '—' }, { label: '当前索引', value: currentStep.currentIndex }]} />}
         <svg
           ref={d3Container}
           className="d3-component"

@@ -8,6 +8,7 @@ export interface AnimationStep {
   water: number[];
   totalWater: number;
   currentIndex: number;
+  currentWater?: number;
   phase: 'leftScan' | 'rightScan' | 'waterCalculation' | 'complete';
   description?: string;
   // 代码行绑定
@@ -134,8 +135,9 @@ export const usePrecomputationSteps = ({ heights, speed = 500 }: UsePrecomputati
         water: [...water.slice(0, i+1), ...new Array(n-i-1).fill(0)],
         totalWater,
         currentIndex: i,
+        currentWater: water[i],
         phase: 'waterCalculation',
-        description: `计算水量：water[${i}] = min(leftMax[${i}]=${leftMax[i]}, rightMax[${i}]=${rightMax[i]}) - height[${i}]=${heights[i]} = ${water[i]}`,
+        description: `计算第 ${i} 列：左侧最高 ${leftMax[i]}，右侧最高 ${rightMax[i]}；较矮边界 ${Math.min(leftMax[i], rightMax[i])} − 柱高 ${heights[i]}，本列接水 ${water[i]} 格，累计 ${totalWater} 格。`,
         codeLineBindings: CODE_LINE_MAPPINGS.calcWater
       });
     }
