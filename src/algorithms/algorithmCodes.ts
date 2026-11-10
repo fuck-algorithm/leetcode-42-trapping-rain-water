@@ -215,7 +215,8 @@ export const precomputationCode: Record<Language, string> = {
     // 计算水量
     int water = 0;
     for (int i = 0; i < n; i++) {
-        water += Math.min(leftMax[i], rightMax[i]) - height[i];
+        int currentWater = Math.min(leftMax[i], rightMax[i]) - height[i];
+        water += Math.max(0, currentWater);
     }
     return water;
 }`,
@@ -241,7 +242,8 @@ export const precomputationCode: Record<Language, string> = {
     # 计算水量
     water = 0
     for i in range(n):
-        water += min(left_max[i], right_max[i]) - height[i]
+        current_water = min(left_max[i], right_max[i]) - height[i]
+        water += max(0, current_water)
     
     return water`,
 
@@ -269,7 +271,8 @@ export const precomputationCode: Record<Language, string> = {
     // 计算水量
     water := 0
     for i := 0; i < n; i++ {
-        water += min(leftMax[i], rightMax[i]) - height[i]
+        currentWater := max(0, min(leftMax[i], rightMax[i])-height[i])
+        water += currentWater
     }
     return water
 }`,
@@ -296,7 +299,8 @@ export const precomputationCode: Record<Language, string> = {
     // 计算水量
     let water = 0;
     for (let i = 0; i < n; i++) {
-        water += Math.min(leftMax[i], rightMax[i]) - height[i];
+        const currentWater = Math.min(leftMax[i], rightMax[i]) - height[i];
+        water += Math.max(0, currentWater);
     }
     return water;
 }`
